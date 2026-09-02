@@ -124,3 +124,45 @@ Barge-in rule: 4 consecutive 32 ms chunks with VAD > 0.75 that the echo gate doe
 (`--bargein-chunks`, `--bargein-threshold`, `--echo-corr`). On interrupt: Kokoro's queue is flushed (stops within one
 21 ms block), the LLM stream is abandoned, the words that reached the speaker are computed from played samples, and
 the model is told what was cut so "go on" continues from there.
+
+## Web search: SearXNG finds, Trafilatura reads
+
+No Docker on this machine, so SearXNG runs from source in its own venv (`.venv-searxng`, source in
+`search/searxng-src`, one Unix-only import patched). `search/settings.yml` turns the JSON API on
+(`search.formats: [html, json]`), disables the bot limiter for localhost, and disables engines that
+captcha from this IP (DuckDuckGo, Qwant, Bing). Google, Brave, Startpage, Wikipedia carry general search.
+
+```powershell
+.venv\Scripts\python.exe search\run_searxng.py           # start (the agent also auto-starts it with /search on)
+.venv\Scripts\python.exe search\run_searxng.py --check   # up/down
+```
+
+Tools in `agent/tools_web.py`: `web_search(query, time_range, category)` (SearXNG JSON, top 6 with snippets),
+`read_page(url)` (Trafilatura, boilerplate stripped, browser UA, trimmed to 6k chars), `research(question, pages)`
+(search then read the top pages in parallel). Measured: search 0.7 to 4 s depending on engine warm-up, page read 1 to 6 s.
+
+## Slash commands, MCP, and the agent loop
+
+Type while the agent runs (the input line is at the bottom of the screen); anything without a slash is a typed turn.
+
+| command | effect |
+|---|---|
+| `/model groq:openai/gpt-oss-20b` | hot-swap the model (Anthropic, Groq, Gemini via LangChain `provider:model`) |
+| `/voice af_bella` | switch Kokoro voice without reloading the model |
+| `/tools` | list tools and where each comes from (builtin, web, mcp:name) |
+| `/search on|off` | give or take away the web tools; `on` starts SearXNG if needed |
+| `/mcp`, `/mcp on demo`, `/mcp off demo`, `/mcp reload` | servers from `agent/mcp.json` (stdio or streamable_http), attach/detach at runtime |
+| `/say ...`, `/stop`, `/mute`, `/unmute`, `/history`, `/clear`, `/status`, `/help`, `/quit` | |
+
+`agent/mcp.json` ships with a local demo server (`agent/mcp_servers/demo_server.py`: calculator, unit conversion, dice)
+enabled, plus the official filesystem and fetch servers disabled as examples. MCP sessions are persistent (one process
+per server); each tool round-trip is a few hundred ms. Turns are capped at 12 graph steps (about 5 tool round-trips)
+and abandoned if the model goes quiet for 40 s, so a looping model cannot hang the voice loop.
+
+### Groq rate limits
+
+Each Groq key on this account allows 8,000 tokens per minute per model. With nine tools, the prompt and history, one
+turn costs ~1,300 tokens, so a lively conversation hits the cap in a minute. The agent sets the Groq SDK to zero
+retries and, on a 429, benches that key for 60 s and switches to the next working key in `GROQ_KEYS` (four working
+keys = ~32k tokens/min). Tool results are trimmed to 700 chars in history after each turn so a read web page does
+not sit in every later request. Verified: the switch fires mid-conversation and the next reply arrives in ~0.5 s.

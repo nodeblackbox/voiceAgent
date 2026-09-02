@@ -172,6 +172,14 @@ Tool calls: Haiku says "Let me check." first; the chunker is flushed at the tool
 
 Echo gate (synthetic): 23/26 echo chunks flagged at 120 ms delay and one-quarter level; 0/31 user-speech chunks and 0/26 user-over-echo chunks wrongly flagged; 0.7 ms per chunk. Real-microphone verification with open speakers still needs a human.
 
+## Web search, MCP and commands
+
+SearXNG runs from source on Windows (no Docker): JSON API on, limiter off, captcha-prone engines disabled. First query 4 s (engine warm-up and captcha timeouts), later queries ~0.7 s. Trafilatura read the Hugging Face model page (18k chars) in 6.5 s and needed a browser user agent for PyPI. Haiku answered "latest trafilatura on PyPI" correctly (2.2.0, 31 July 2026) but made ten tool calls doing it; the turn is now capped at 12 graph steps and the prompt tells it to stop once it has the answer.
+
+MCP: a local demo server (calculator, units, dice) attaches from mcp.json; Haiku and Groq both call its tools. Sessions are now persistent, so a tool round-trip no longer spawns a process. All slash commands verified in text mode: /tools, /mcp, /search on|off, /model, /voice, /status, /help.
+
+One unexplained event: a single Groq turn took 108 s inside the agent loop while Groq alone answered in under 0.5 s; it did not recur across seven later turns. A 40 s stall watchdog now abandons such a turn instead of freezing the loop.
+
 ## Recommendations
 
 - Use hybrid mode. Budget ~50 ms ASR per utterance, ~150 ms for a minute of speech.

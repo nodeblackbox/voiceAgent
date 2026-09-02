@@ -1,0 +1,86 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+[09/02/26 12:50:37] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+groq:openai/gpt-oss-20b · tools: current_time, remember, recall, calculate, 
+convert_units, roll_dice · type /help
+[  19.46s] listening → user speaking (vad_on)
+[  19.46s] user speaking → thinking (vad_off)
+#1 you  Roll two dice.
+     ⚙ roll_dice(...)
+                    INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ roll_dice → rolled [4, 6] (total 10)
+[  20.36s] thinking → speaking (first_audio)
+[  25.83s] speaking → listening (playback_done)
+#1 af_heart  You got a four and a six, so the total is ten. Anything else?
+     asr -  llm→sentence 693ms  kokoro 196ms  end→audio 892ms
+[  26.06s] listening → user speaking (vad_on)
+[  26.06s] user speaking → thinking (vad_off)
+#2 you  Roll again.
+     ⚙ roll_dice(...)
+[09/02/26 12:50:44] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ roll_dice → rolled [5, 6] (total 11)
+[  26.93s] thinking → speaking (first_audio)
+[  32.33s] speaking → listening (playback_done)
+#2 af_heart  That’s a five and a six, eleven total. Want to roll more?
+     asr -  llm→sentence 681ms  kokoro 181ms  end→audio 868ms
+[  32.55s] listening → user speaking (vad_on)
+[  32.55s] user speaking → thinking (vad_off)
+#3 you  What time is it?
+     ⚙ current_time(...)
+     ⚙ current_time → Wednesday 02 September 2026, 12:50
+[  33.55s] thinking → speaking (first_audio)
+[  38.74s] speaking → listening (playback_done)
+#3 af_heart  It’s Wednesday, second of September, twelve fifty. Anything else?
+     asr -  llm→sentence 789ms  kokoro 193ms  end→audio 986ms
+[  38.94s] listening → user speaking (vad_on)
+[  38.94s] user speaking → thinking (vad_off)
+#4 you  Convert 5 miles to km with the tool.
+     ⚙ convert_units(...)
+[09/02/26 12:50:57] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ convert_units → 5.0 mi = 8.047 km
+[  40.65s] thinking → speaking (first_audio)
+[  46.56s] speaking → listening (playback_done)
+#4 af_heart  Five miles is about eight point zero four seven kilometres. Need 
+anything else?
+     asr -  llm→sentence 1416ms  kokoro 279ms  end→audio 1699ms
+[  46.80s] listening → user speaking (vad_on)
+[  46.80s] user speaking → thinking (vad_off)
+#5 you  Say hello.
+[  47.58s] thinking → speaking (first_audio)
+[  49.06s] speaking → listening (playback_done)
+#5 af_heart  Hey there!
+     asr -  llm→sentence 605ms  kokoro 158ms  end→audio 773ms
+[  49.27s] listening → user speaking (vad_on)
+[  49.27s] user speaking → thinking (vad_off)
+#6 you  Roll three dice.
+     groq rate limit on key0_tokyo2 → switching to key2_noproxy
+     ⚙ roll_dice(...)
+[09/02/26 12:51:09] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ roll_dice → rolled [2, 6, 1] (total 9)
+[  51.86s] thinking → speaking (first_audio)
+[  58.15s] speaking → listening (playback_done)
+#6 af_heart  You rolled a two, a six, and a one, so that’s nine in total. Want 
+another roll?Sure thing!
+     asr -  llm→sentence 458ms  kokoro 194ms  end→audio 2595ms
+[  58.38s] listening → user speaking (vad_on)
+[  58.38s] user speaking → thinking (vad_off)
+#7 you  Say bye.
+[  58.89s] thinking → speaking (first_audio)
+[  61.71s] speaking → listening (playback_done)
+#7 af_heart  Bye! Take care.
+     asr -  llm→sentence 320ms  kokoro 172ms  end→audio 503ms
+     session: 7 turns, 0 interrupted
+     speech end → first audio   p50   892 ms   p95  2326 ms
+     LLM first sentence         p50   681 ms   p95  1228 ms
+     Kokoro first sentence      p50   193 ms   p95   254 ms
+     echo gate suppressed 0 chunks · log 
+D:\Downloads\voiceAgent\results\talk_20260902_125018.jsonl

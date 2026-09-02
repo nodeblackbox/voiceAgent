@@ -97,6 +97,24 @@ class GroqKeyPool:
     def live(self) -> list[GroqKey]:
         return [k for k in self.keys if k.cooldown_until != float("inf")]
 
+    def first_working(self) -> GroqKey | None:
+        """Probe keys (cheap GET /models) until one answers 200; dead keys are benched for good."""
+        import httpx
+
+        now = time.time()
+        for k in sorted(self.live(), key=lambda k: k.cooldown_until):
+            if k.cooldown_until > now:
+                continue  # cooling down after a 429; try the others first
+            try:
+                r = httpx.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {k.key}"}, timeout=8)
+                if r.status_code == 200:
+                    return k
+                if r.status_code in (401, 403):
+                    self.bench(k, forever=True)
+            except Exception:  # noqa: BLE001
+                continue
+        return None
+
     def __len__(self) -> int:
         return len(self.keys)
 

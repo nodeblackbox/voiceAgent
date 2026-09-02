@@ -112,6 +112,18 @@ class KokoroTTS:
             torch.cuda.synchronize()
         self.warmup_s = time.perf_counter() - t0
 
+    def set_voice(self, voice: str) -> str:
+        """Switch voice without reloading the model (voices are small tensors)."""
+        lang = voice[0]
+        if lang != self.voice[0]:
+            from kokoro import KPipeline
+
+            self.pipeline = KPipeline(lang_code=lang, model=self.model, repo_id=REPO)
+        self.pipeline.load_voice(voice)
+        self.voice = voice
+        self.synth("Okay.")
+        return voice
+
     def vram_mib(self) -> float | None:
         if self.device != "cuda":
             return None

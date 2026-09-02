@@ -1,7 +1,11 @@
+**/__pycache__/
+*.pyc
 .env
 .env.*
 .venv/
-**/__pycache__/
-*.pyc
-results/*.wav
+.venv-searxng/
 results/*.jsonl
+results/*.wav
+results/notes.json
+results/searxng.log
+search/searxng-src/

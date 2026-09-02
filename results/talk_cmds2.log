@@ -1,0 +1,54 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+     search on (SearXNG already up at http://127.0.0.1:8888)
+[09/02/26 12:36:21] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, web_search, 
+read_page, research, calculate, convert_units, roll_dice · type /help
+       current_time     builtin
+       remember         builtin
+       recall           builtin
+       web_search       web
+       read_page        web
+       research         web
+       calculate        mcp:demo
+       convert_units    mcp:demo
+       roll_dice        mcp:demo
+       ● demo         stdio    calculate, convert_units, roll_dice
+       ○ filesystem   stdio    official filesystem server scoped to this project
+(needs Node; first run downloads it)
+       ○ fetch        stdio    official fetch server (overlaps with read_page; 
+here as an example)
+     search off
+       current_time     builtin
+       remember         builtin
+       recall           builtin
+       calculate        mcp:demo
+       convert_units    mcp:demo
+       roll_dice        mcp:demo
+     voice → af_bella
+     state listening · model anthropic:claude-haiku-4-5 · voice af_bella · 
+search off · mcp demo · sound on · echo gate suppressed 0
+       no turns yet
+     /help                          list commands
+     /model <provider:model>        switch the model, e.g. 
+groq:openai/gpt-oss-20b
+     /voice <name>                  switch the Kokoro voice, e.g. af_bella, 
+am_michael, bf_emma
+     /tools                         list the tools the model has right now
+     /search on|off                 give or take away the web tools (starts 
+SearXNG if needed)
+     /mcp [on|off <name> | reload]  list MCP servers from mcp.json, or switch 
+one
+     /say <text>                    send a typed turn instead of speaking
+     /stop                          interrupt the current reply
+     /mute                          stop speaking replies (text still streams)
+     /unmute                        speak replies again
+     /history [n]                   show the last n exchanges
+     /clear                         forget the conversation
+     /status                        state, model, last-turn timings
+     /quit                          exit

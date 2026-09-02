@@ -1,0 +1,105 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+     search on (SearXNG already up at http://127.0.0.1:8888)
+[09/02/26 12:43:47] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, web_search, 
+read_page, research, calculate, convert_units, roll_dice · type /help
+       current_time     builtin
+       remember         builtin
+       recall           builtin
+       web_search       web
+       read_page        web
+       research         web
+       calculate        mcp:demo
+       convert_units    mcp:demo
+       roll_dice        mcp:demo
+[  21.65s] listening → user speaking (vad_on)
+[  21.66s] user speaking → thinking (vad_off)
+#1 you  What's the newest version of the trafilatura package on PyPI?
+     ⚙ web_search(...)
+[  22.82s] thinking → speaking (first_audio)
+     ⚙ web_search → 1. trafilatura - PyPI
+   https://pypi.org/project/trafilatura/
+   Trafilatura is an Italia
+     ⚙ read_page(...)
+     ⚙ read_page → trafilatura on PyPI — Adrien Barbaresi (2026-07-31)
+
+trafilatura latest version 2.2.0 rele
+[  41.19s] speaking → listening (playback_done)
+#1 af_heart  Let me check that for you.The search shows version two point two 
+point zero in the docs. Let me grab the PyPI page directly to confirm.The newest
+version is two point two point zero, released July thirty first of this year. It
+requires Python three point ten or higher.
+     asr -  llm→sentence 957ms  kokoro 191ms  end→audio 1155ms
+[  41.39s] listening → user speaking (vad_on)
+[  41.40s] user speaking → thinking (vad_off)
+#2 you  Roll two dice for me.
+     ⚙ roll_dice(...)
+[09/02/26 12:44:09] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ roll_dice → rolled [2, 6] (total 8)
+[  43.68s] thinking → speaking (first_audio)
+[  47.32s] speaking → listening (playback_done)
+#2 af_heart  You got a two and a six, totaling eight.
+     asr -  llm→sentence 2104ms  kokoro 191ms  end→audio 2280ms
+     model → groq:openai/gpt-oss-20b
+[  49.89s] listening → user speaking (vad_on)
+[  49.89s] user speaking → thinking (vad_off)
+#3 you  Convert 100 fahrenheit to celsius with the tool.
+     ⚙ convert_units(...)
+[09/02/26 12:44:17] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ convert_units → don't know how to convert fahrenheit to celsius
+     ⚙ convert_units(...)
+                    INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+     ⚙ convert_units → 100.0 F = 37.8 C
+[  61.79s] thinking → speaking (first_audio)
+[  67.01s] speaking → listening (playback_done)
+#3 af_heart  One hundred degrees Fahrenheit is about thirty seven point eight 
+degrees Celsius.
+     asr -  llm→sentence 11710ms  kokoro 170ms  end→audio 11893ms
+     muted
+[  67.46s] listening → user speaking (vad_on)
+[  67.46s] user speaking → thinking (vad_off)
+#4 you  Say hello.
+[  84.21s] thinking → speaking (first_audio)
+[  85.69s] speaking → listening (playback_done)
+#4 af_heart  Hey there!
+     asr -  llm→sentence 16569ms  kokoro 160ms  end→audio 16748ms
+     unmuted
+     voice → af_bella
+[  86.67s] listening → user speaking (vad_on)
+[  86.67s] user speaking → thinking (vad_off)
+#5 you  Say hello again.
+[ 108.41s] thinking → speaking (first_audio)
+[ 110.08s] speaking → listening (playback_done)
+#5 af_bella  Hello again!
+     asr -  llm→sentence 21559ms  kokoro 162ms  end→audio 21731ms
+     search off
+       current_time     builtin
+       remember         builtin
+       recall           builtin
+       calculate        mcp:demo
+       convert_units    mcp:demo
+       roll_dice        mcp:demo
+       agent One hundred degrees Fahrenheit is about thirty seven point eight 
+degrees Celsius.
+       you   Say hello.
+       agent Hey there!
+       you   Say hello again.
+       agent Hello again!
+     state listening · model groq:openai/gpt-oss-20b · voice af_bella · search 
+off · mcp demo · sound on · echo gate suppressed 0
+       last turn: asr None ms, llm first sentence 21559 ms, end→audio 21731 ms
+     session: 5 turns, 0 interrupted
+     speech end → first audio   p50 11893 ms   p95 20735 ms
+     LLM first sentence         p50 11710 ms   p95 20561 ms
+     Kokoro first sentence      p50   170 ms   p95   191 ms
+     echo gate suppressed 0 chunks · log 
+D:\Downloads\voiceAgent\results\talk_20260902_124326.jsonl

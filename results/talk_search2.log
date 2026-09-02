@@ -1,0 +1,43 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+     search on (SearXNG already up at http://127.0.0.1:8888)
+[09/02/26 12:38:59] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, web_search, 
+read_page, research, calculate, convert_units, roll_dice · type /help
+[  22.48s] listening → user speaking (vad_on)
+[  22.48s] user speaking → thinking (vad_off)
+#1 you  What's the newest Kokoro TTS package version on PyPI right now?
+     ⚙ web_search(...)
+[  24.14s] thinking → speaking (first_audio)
+     ⚙ web_search → 1. How to Install kokoro-tts on Manjaro? (Python 3.13 
+Issues)
+   https://forum.manjaro.org
+     ⚙ read_page(...)
+     ⚙ read_page → Client Challenge
+
+A required part of this site couldn’t load. This may be due to a browser
+[  59.53s] speaking → listening (playback_done)
+#1 af_heart  Let me check that for you.Let me get the actual version info from 
+the PyPI page.The PyPI page is blocked, but from the search results I can see 
+there's a package called `kokoro` on PyPI. The search result for pykokoro 
+mentions a release date of August twenty-second, twenty twenty-six, but that's 
+clearly a data error since we're in twenty twenty-five. 
+
+Can you try running `pip index versions kokoro` in your terminal? That'll give 
+you the actual latest version directly from PyPI without me needing to scrape 
+the page.
+     asr -  llm→sentence 1346ms  kokoro 282ms  end→audio 1651ms
+     state listening · model anthropic:claude-haiku-4-5 · voice af_heart · 
+search on · mcp demo · sound on · echo gate suppressed 0
+       last turn: asr None ms, llm first sentence 1346 ms, end→audio 1651 ms
+     session: 1 turns, 0 interrupted
+     speech end → first audio   p50  1651 ms   p95  1651 ms
+     LLM first sentence         p50  1346 ms   p95  1346 ms
+     Kokoro first sentence      p50   282 ms   p95   282 ms
+     echo gate suppressed 0 chunks · log 
+D:\Downloads\voiceAgent\results\talk_20260902_123837.jsonl

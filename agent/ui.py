@@ -42,6 +42,7 @@ class TerminalUI:
         self.last_transition = ""
         self.badges: dict[str, str] = {}
         self.status = ""
+        self.input_buf = ""
         self.lock = threading.Lock()
         self.live: Live | None = None
         self.t0 = time.perf_counter()
@@ -163,6 +164,10 @@ class TerminalUI:
         self.status = msg
         self.refresh()
 
+    def set_input(self, buf: str):
+        self.input_buf = buf
+        self.refresh()
+
     # ---------------------------------------------------------------- render
     def render(self):
         head = Table.grid(expand=True)
@@ -190,5 +195,7 @@ class TerminalUI:
             ("   ", ""), (self.last_transition, "dim"),
             ("   ", ""), (self.status, "yellow"),
         )
+        prompt = Text.assemble(("› ", "bold magenta"), (self.input_buf, "bold white"), ("▏", "magenta"),
+                               ("   /help for commands", "dim") if not self.input_buf else ("", ""))
         return Group(Panel(head, padding=(0, 1)), Panel(Group(*body), title="conversation", padding=(0, 1)),
-                     Panel(foot, padding=(0, 1)))
+                     Panel(Group(foot, prompt), padding=(0, 1)))

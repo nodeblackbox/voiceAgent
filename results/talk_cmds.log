@@ -1,0 +1,165 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+     search on (SearXNG already up at http://127.0.0.1:8888)
+[09/02/26 12:29:33] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, web_search, 
+read_page, research, calculate, convert_units, roll_dice · type /help
+[  49.98s] listening → user speaking (vad_on)
+[  49.98s] user speaking → thinking (vad_off)
+#1 you  C:/Program Files/Git/tools
+[  51.14s] thinking → speaking (first_audio)
+[  56.44s] speaking → listening (playback_done)
+#1 af_heart  That's the Git tools directory on your Windows machine. What do you
+need from there?
+     asr -  llm→sentence 897ms  kokoro 252ms  end→audio 1153ms
+[  56.68s] listening → user speaking (vad_on)
+[  56.68s] user speaking → thinking (vad_off)
+#2 you  C:/Program Files/Git/mcp
+[  57.86s] thinking → speaking (first_audio)
+[  67.00s] speaking → listening (playback_done)
+#2 af_heart  That's the MCP directory inside your Git installation. Are you 
+looking to set up an MCP server, or checking what's already there?
+     asr -  llm→sentence 911ms  kokoro 251ms  end→audio 1180ms
+[  67.25s] listening → user speaking (vad_on)
+[  67.25s] user speaking → thinking (vad_off)
+#3 you  What's the latest version of the trafilatura package on PyPI and when 
+was it released?
+     ⚙ web_search(...)
+[  68.51s] thinking → speaking (first_audio)
+     ⚙ web_search → 1. trafilatura - PyPI
+   https://pypi.org/project/trafilatura/
+   Trafilatura is a cutting
+     ⚙ read_page(...)
+     ⚙ read_page → trafilatura (2026-07-31)
+
+Trafilatura is a cutting-edge Python package and command-line to
+     ⚙ web_search(...)
+     ⚙ web_search → 1. trafilatura - PyPI
+   https://pypi.org/project/trafilatura/
+   Release history. Trafila
+     ⚙ read_page(...)
+     ⚙ read_page → trafilatura (2026-07-31)
+
+Trafilatura is a cutting-edge Python package and command-line to
+     ⚙ web_search(...)
+     ⚙ web_search → 1. trafilatura - PyPI
+   https://pypi.org/project/trafilatura/
+   trafilatura 2.2.0. Pytho
+     ⚙ read_page(...)
+     ⚙ read_page → Client Challenge
+
+A required part of this site couldn’t load. This may be due to a browser
+     ⚙ web_search(...)
+     ⚙ web_search → 1. Releases · adbar/trafilatura - GitHub
+   https://github.com/adbar/trafilatura/releases
+
+     ⚙ read_page(...)
+     ⚙ read_page → Releases · adbar/trafilatura — Adbar (2026-07-31)
+
+Releases: adbar/trafilatura
+Release lis
+     ⚙ web_search(...)
+     ⚙ web_search → 1. Python usage — Trafilatura 2.2.0 documentation - Read the
+Docs
+   https://trafilatura.r
+     ⚙ web_search(...)
+     ⚙ web_search → 1. The Announcement Carries the Cue Markup, Boundaries ... -
+arXiv
+   https://arxiv.org/ht
+[ 181.81s] speaking → listening (playback_done)
+#3 af_heart  Let me look that up.I see version two point two point zero 
+mentioned. Let me get the exact release date from the PyPI page.The page shows 
+the version date as July thirty-first, twenty twenty-six, which is in the 
+future—that's a display quirk. Let me search for the actual release history to 
+get the real version number and date.Let me check the release history page 
+directly to see all versions and dates.The page isn't showing the release 
+history section. Let me try a different search to find the actual latest version
+and release date.Let me check the specific page for version two point two point 
+zero.Let me try searching for the release notes or changelog directly.The GitHub
+releases page should have the exact date. Let me check that.The page header 
+shows July thirty-first, twenty twenty-six, but that's clearly a display issue. 
+Let me search for when version two point two point zero was actually 
+released.The search results mention that trafilatura 2.2.0 documentation is 
+current as of 2025. Let me try one more specific search to pin down the exact 
+release date.Based on what I'm seeing, version two point two point zero is the 
+latest on PyPI, but the exact release date is unclear from these results—the 
+pages are showing future dates which suggests they're cached or there's a 
+display issue. According to the GitHub releases page, two point two point zero 
+includes major improvements to text recovery and extraction, but I can't pin 
+down the precise release date from what I'm finding. The documentation is 
+current as of twenty twenty-five, so it was released sometime before that. Do 
+you need the exact date for something specific, or does knowing it's the latest 
+version help?
+     asr -  llm→sentence 973ms  kokoro 258ms  end→audio 1253ms
+[ 182.06s] listening → user speaking (vad_on)
+[ 182.06s] user speaking → thinking (vad_off)
+#4 you  C:/Program Files/Git/search off
+[ 183.53s] thinking → speaking (first_audio)
+[ 188.84s] speaking → listening (playback_done)
+#4 af_heart  Got it, I'm turning search off. I won't use web tools unless you 
+ask me to.
+     asr -  llm→sentence 1208ms  kokoro 242ms  end→audio 1467ms
+[ 189.06s] listening → user speaking (vad_on)
+[ 189.06s] user speaking → thinking (vad_off)
+#5 you  C:/Program Files/Git/tools
+[ 190.17s] thinking → speaking (first_audio)
+[ 194.04s] speaking → listening (playback_done)
+#5 af_heart  You're back in the tools directory. What do you need?
+     asr -  llm→sentence 886ms  kokoro 218ms  end→audio 1106ms
+     model → groq:openai/gpt-oss-20b
+[ 196.56s] listening → user speaking (vad_on)
+[ 196.56s] user speaking → thinking (vad_off)
+#6 you  Use the calculator: what is 2 to the power of 20?
+     ⚙ calculate(...)
+[09/02/26 12:32:02] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+                    INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     ⚙ calculate → cannot evaluate: only numbers and + - * / ** % // are allowed
+     ⚙ calculate(...)
+[09/02/26 12:32:56] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+                    INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     ⚙ calculate → 2**20 = 1048576
+[ 305.16s] thinking → speaking (first_audio)
+[ 310.84s] speaking → listening (playback_done)
+#6 af_heart  Two to the power of twenty is one million forty‑eight thousand five
+hundred seventy‑six.
+     asr -  llm→sentence 108321ms  kokoro 263ms  end→audio 108595ms
+[ 311.07s] listening → user speaking (vad_on)
+[ 311.07s] user speaking → thinking (vad_off)
+#7 you  C:/Program Files/Git/voice af_bella
+[ 312.04s] thinking → speaking (first_audio)
+[ 318.99s] speaking → listening (playback_done)
+#7 af_heart  I heard you say “C slash Program Files slash Git slash voice 
+af_bella.” What would you like me to do with that?
+     asr -  llm→sentence 657ms  kokoro 298ms  end→audio 972ms
+[ 319.23s] listening → user speaking (vad_on)
+[ 319.23s] user speaking → thinking (vad_off)
+#8 you  C:/Program Files/Git/status
+[ 363.83s] thinking → speaking (first_audio)
+[ 374.56s] speaking → listening (playback_done)
+#8 af_heart  That’s the Git “status” directory on your machine. If you want to 
+see what’s changed in a repository, run `git status` from the repo’s root. 
+Anything else?
+     asr -  llm→sentence 44321ms  kokoro 253ms  end→audio 44593ms
+[ 374.79s] listening → user speaking (vad_on)
+[ 374.79s] user speaking → thinking (vad_off)
+#9 you  C:/Program Files/Git/history 2
+[ 376.16s] thinking → speaking (first_audio)
+[ 382.05s] speaking → listening (playback_done)
+#9 af_heart  Do you want to see the git log of a repository, or open a file 
+called “history 2”?
+     asr -  llm→sentence 1122ms  kokoro 223ms  end→audio 1362ms
+     session: 9 turns, 0 interrupted
+     speech end → first audio   p50  1253 ms   p95 82994 ms
+     LLM first sentence         p50   973 ms   p95 82721 ms
+     Kokoro first sentence      p50   252 ms   p95   284 ms
+     echo gate suppressed 0 chunks · log 
+D:\Downloads\voiceAgent\results\talk_20260902_122843.jsonl

@@ -37,6 +37,8 @@ ROOT = Path(__file__).resolve().parent.parent
 for sub in ("bench", "tts", "llm", "agent"):
     sys.path.insert(0, str(ROOT / sub))
 from brain import Brain  # noqa: E402
+from commands import CommandRouter  # noqa: E402
+from keys import LineReader  # noqa: E402
 from common import RESULTS_DIR, assert_cuda_still_active, load_parakeet, load_wav_16k, pct, resolve_input_device, wasapi_settings  # noqa: E402
 from echo_gate import EchoGate  # noqa: E402
 from kokoro_stream import SR as TTS_SR, KokoroTTS, NullSink, SentenceChunker, SpeakerSink, StreamingSpeech  # noqa: E402
@@ -46,6 +48,14 @@ from ui import TerminalUI  # noqa: E402
 
 SR = 16000
 CHUNK = 512
+
+SEARCH_PROMPT_ADDON = """
+Web
+- When web tools are available (web_search, read_page, research), use them for anything current, anything after your training data, prices, versions, news, and facts you are not sure of. Say a short lead-in first ("Let me look that up.").
+- Speak the source by name ("according to the NVIDIA page"), never read out a URL.
+- Be economical: one web_search plus at most one read_page usually answers a question. The moment you have the answer, say it; do not re-search to double-check unless the user asked for certainty. Use research(question) when you genuinely need several pages.
+- If a page is blocked or unreadable, say so and answer from what you have rather than trying the same page again.
+"""
 
 INTERRUPT_PROMPT_ADDON = """
 Interruptions
@@ -84,6 +94,9 @@ class Talk:
         self.session_play0 = 0
         self.asr_lock = threading.Lock()
         self.turn_q: queue.Queue = queue.Queue()
+        self.muted = False
+        self.quit = threading.Event()
+        self.router = self._build_commands()
 
     # ---------------------------------------------------------------- loading
     def load(self):
@@ -98,12 +111,152 @@ class Talk:
         self.sink = NullSink(on_play=self.echo.push_played) if a.no_play else \
             SpeakerSink(device=resolve_output_device(a.out_device), on_play=self.echo.push_played)
         self.ui.set_status("connecting to model…")
-        system = voice_system_prompt(agent_name=a.agent_name, user_name=a.user_name) + INTERRUPT_PROMPT_ADDON
-        self.brain = Brain(a.model, system_prompt=system, max_tokens=a.max_tokens)
+        system = voice_system_prompt(agent_name=a.agent_name, user_name=a.user_name) + SEARCH_PROMPT_ADDON + INTERRUPT_PROMPT_ADDON
+        self.brain = Brain(a.model, system_prompt=system, max_tokens=a.max_tokens, search=False)
+        self.brain.on_notice = lambda msg: self.ui.note(msg, "yellow")
         self.brain.warm()
+        if a.search:
+            self.ui.note(self._search_on(), "dim")
+        for msg in self.brain.mcp_autoconnect():
+            self.ui.note(f"mcp: {msg}", "yellow dim")
         self.ui.set_status("")
-        self.ui.note(f"ready · Parakeet hybrid · Kokoro {a.voice} ({self.tts.vram_mib():.0f} MiB) · {a.model} · tools: "
-                     + ", ".join(t.name for t in self.brain.tools), "green dim")
+        self.ui.note(f"ready · Parakeet hybrid · Kokoro {a.voice} ({self.tts.vram_mib():.0f} MiB) · {a.model} · "
+                     f"tools: {', '.join(n for n, _ in self.brain.tool_sources())} · type /help", "green dim")
+
+    def _search_on(self) -> str:
+        sys.path.insert(0, str(ROOT / "search"))
+        from run_searxng import ensure_running
+
+        self.ui.set_status("starting SearXNG…")
+        up, msg = ensure_running()
+        self.ui.set_status("")
+        if not up:
+            return f"search NOT enabled: {msg}"
+        self.brain.set_search(True)
+        return f"search on ({msg})"
+
+    # ---------------------------------------------------------------- slash commands
+    def _build_commands(self) -> CommandRouter:
+        r = CommandRouter()
+
+        @r.add("help", "help", "list commands")
+        def _help(args):
+            return r.help_text()
+
+        @r.add("model", "model <provider:model>", "switch the model, e.g. groq:openai/gpt-oss-20b")
+        def _model(args):
+            if not args:
+                return f"model is {self.brain.model_spec}"
+            self.ui.set_status("switching model…")
+            try:
+                spec = self.brain.set_model(args[0])
+            finally:
+                self.ui.set_status("")
+            self.ui.model = spec
+            return f"model → {spec}"
+
+        @r.add("voice", "voice <name>", "switch the Kokoro voice, e.g. af_bella, am_michael, bf_emma")
+        def _voice(args):
+            if not args:
+                return f"voice is {self.tts.voice}"
+            self.tts.set_voice(args[0])
+            self.ui.voice = args[0]
+            return f"voice → {args[0]}"
+
+        @r.add("tools", "tools", "list the tools the model has right now")
+        def _tools(args):
+            return "\n".join(f"  {n:16} {src}" for n, src in self.brain.tool_sources()) or "  (none)"
+
+        @r.add("search", "search on|off", "give or take away the web tools (starts SearXNG if needed)")
+        def _search(args):
+            if not args:
+                return f"search is {'on' if self.brain.search_on else 'off'}"
+            if args[0] == "on":
+                return self._search_on()
+            self.brain.set_search(False)
+            return "search off"
+
+        @r.add("mcp", "mcp [on|off <name> | reload]", "list MCP servers from mcp.json, or switch one")
+        def _mcp(args):
+            if not args:
+                rows = self.brain.mcp_status()
+                return "\n".join(f"  {'●' if x['on'] else '○'} {x['name']:12} {x['transport']:8} "
+                                  f"{', '.join(x['tools']) if x['on'] else x['desc']}" for x in rows) or "  (no servers in mcp.json)"
+            if args[0] == "reload":
+                from brain import load_mcp_config
+                self.brain.mcp_cfg = load_mcp_config()
+                return f"reloaded mcp.json: {', '.join(self.brain.mcp_cfg)}"
+            if len(args) < 2:
+                return "usage: /mcp on <name> | off <name>"
+            self.ui.set_status(f"mcp {args[0]} {args[1]}…")
+            try:
+                return self.brain.mcp_on(args[1]) if args[0] == "on" else self.brain.mcp_off(args[1])
+            finally:
+                self.ui.set_status("")
+
+        @r.add("say", "say <text>", "send a typed turn instead of speaking")
+        def _say(args):
+            text = " ".join(args).strip()
+            if not text:
+                return "say what?"
+            if self.sm.agent_busy:
+                self.barge_in()
+                self.sm.abort()
+            self.sm.vad_on()
+            self.sm.vad_off()
+            self.turn_q.put((None, time.perf_counter(), text))
+            return None
+
+        @r.add("stop", "stop", "interrupt the current reply")
+        def _stop(args):
+            if self.sm.agent_busy:
+                self.barge_in()
+                self.sm.abort()
+                return "stopped"
+            return "nothing playing"
+
+        @r.add("mute", "mute", "stop speaking replies (text still streams)")
+        def _mute(args):
+            self.muted = True
+            return "muted"
+
+        @r.add("unmute", "unmute", "speak replies again")
+        def _unmute(args):
+            self.muted = False
+            return "unmuted"
+
+        @r.add("history", "history [n]", "show the last n exchanges")
+        def _history(args):
+            n = int(args[0]) if args else 4
+            return "\n".join(f"  {who:5} {txt[:140]}" for who, txt in self.brain.transcript(n)) or "  (empty)"
+
+        @r.add("clear", "clear", "forget the conversation")
+        def _clear(args):
+            self.brain.reset()
+            return "history cleared"
+
+        @r.add("status", "status", "state, model, last-turn timings")
+        def _status(args):
+            last = self.turns[-1] if self.turns else None
+            lt = (f"last turn: asr {last.asr_ms and round(last.asr_ms)} ms, llm first sentence "
+                  f"{last.llm_first_sentence_ms and round(last.llm_first_sentence_ms)} ms, end→audio "
+                  f"{last.speech_end_to_audio_ms and round(last.speech_end_to_audio_ms)} ms") if last else "no turns yet"
+            return (f"state {self.sm.state.value} · model {self.brain.model_spec} · voice {self.tts.voice} · "
+                    f"search {'on' if self.brain.search_on else 'off'} · mcp {', '.join(self.brain.mcp_tools) or 'none'} · "
+                    f"{'muted' if self.muted else 'sound on'} · echo gate suppressed {self.echo.suppressed}\n  {lt}")
+
+        @r.add("quit", "quit", "exit")
+        def _quit(args):
+            self.quit.set()
+            return "bye"
+
+        return r
+
+    def on_command_line(self, line: str) -> None:
+        out = self.router.dispatch(line)
+        if out:
+            for ln in str(out).split("\n"):
+                self.ui.note(ln, "bold" if ln.startswith("/") else "white")
 
     # ---------------------------------------------------------------- one turn (runs in the worker thread)
     def respond(self, turn: Turn):
@@ -111,17 +264,19 @@ class Talk:
         self.cancel.clear()
         t_turn0 = time.perf_counter()
         self.ui.assistant_start(turn.n)
-        sess = StreamingSpeech(self.tts, self.sink, speed=a.speed, chunker=SentenceChunker(first_min_words=a.first_min_words))
+        sink = NullSink() if self.muted else self.sink
+        sess = StreamingSpeech(self.tts, sink, speed=a.speed, chunker=SentenceChunker(first_min_words=a.first_min_words))
         self.session = sess
-        self.session_play0 = self.sink.played_samples
-        self.sink.finished = False
-        self.sink.first_audio_wall = None
-        self.echo.set_active(True)
+        self.turn_sink = sink
+        self.session_play0 = sink.played_samples
+        sink.finished = False
+        sink.first_audio_wall = None
+        self.echo.set_active(not self.muted)
 
         def on_text(d):
             sess.feed(d)
             self.ui.assistant_text(d)
-            if self.sink.first_audio_wall and self.sm.state == S.THINKING:
+            if self.turn_sink.first_audio_wall and self.sm.state == S.THINKING:
                 self.sm.first_audio()
 
         def on_tool_call(name):
@@ -134,7 +289,7 @@ class Talk:
         # watch for first audio while the LLM is still streaming (audio can start before the next delta)
         def watch_audio():
             while self.session is sess and not sess.m.t_done:
-                if self.sink.first_audio_wall and self.sm.state == S.THINKING:
+                if self.turn_sink.first_audio_wall and self.sm.state == S.THINKING:
                     self.sm.first_audio()
                     break
                 time.sleep(0.01)
@@ -160,8 +315,8 @@ class Talk:
         turn.interrupted, turn.tool_calls = interrupted, r.tool_calls
         turn.llm_first_token_ms, turn.llm_first_sentence_ms = r.ttft_ms, r.first_sentence_ms
         turn.tts_first_ms = m.sentences[0].gen_s * 1e3 if m.sentences else None
-        if self.sink.first_audio_wall and turn.t_speech_end:
-            turn.speech_end_to_audio_ms = (self.sink.first_audio_wall - turn.t_speech_end) * 1e3
+        if self.turn_sink.first_audio_wall and turn.t_speech_end:
+            turn.speech_end_to_audio_ms = (self.turn_sink.first_audio_wall - turn.t_speech_end) * 1e3
         badges = {"asr": f"{turn.asr_ms:.0f}ms" if turn.asr_ms else "-",
                   "llm→sentence": f"{r.first_sentence_ms:.0f}ms" if r.first_sentence_ms else "-",
                   "kokoro": f"{turn.tts_first_ms:.0f}ms" if turn.tts_first_ms else "-",
@@ -173,7 +328,7 @@ class Talk:
 
     def _spoken_split(self, sess: StreamingSpeech, full_text: str) -> tuple[str, str]:
         """Which words actually came out of the speaker before the cut."""
-        played = self.sink.played_samples - self.session_play0
+        played = self.turn_sink.played_samples - self.session_play0
         spoken_parts, cum = [], 0
         for s in sess.m.sentences:
             n = int(s.audio_s * TTS_SR)
@@ -272,7 +427,13 @@ class Talk:
             finally:
                 partial_busy.clear()
 
+        keys = None
+        if sys.stdin.isatty() and not a.sim:
+            keys = LineReader(on_line=self.on_command_line, on_change=self.ui.set_input)
+            keys.start()
         for chunk in chunks_source:
+            if self.quit.is_set():
+                break
             now = time.perf_counter()
             p = vad(torch.from_numpy(chunk), SR).item()
             echo = self.echo.is_echo(chunk) if self.sm.agent_busy else False
@@ -317,6 +478,8 @@ class Talk:
                     preroll.clear()
                     vad.reset_states()
                     hot = 0
+        if keys:
+            keys.stop()
         # source exhausted: let the last turn finish
         deadline = time.perf_counter() + 120
         while (self.sm.agent_busy or not self.turn_q.empty()) and time.perf_counter() < deadline:
@@ -412,6 +575,7 @@ def main():
     ap.add_argument("--typed", action=argparse.BooleanOptionalAction, default=True,
                      help="also read lines from stdin and send them as turns, alongside the mic")
     ap.add_argument("--plain", action="store_true", help="no live screen; print one line per event (logs, CI)")
+    ap.add_argument("--search", action=argparse.BooleanOptionalAction, default=True, help="web tools on at start (starts SearXNG)")
     ap.add_argument("--say", nargs="*", default=None, help="text turns, no mic/ASR")
     ap.add_argument("--sim", default=None, help="wav to replay as the mic")
     ap.add_argument("--sim-bargein", default=None, help="wav injected while the agent speaks")
@@ -425,8 +589,7 @@ def main():
             if a.say is not None:
                 threading.Thread(target=t.worker, daemon=True).start()
                 for text in a.say:
-                    t.sm.vad_on(); t.sm.vad_off()
-                    t.turn_q.put((None, time.perf_counter(), text))
+                    t.on_command_line(text)   # "/model ..." works here too; plain text becomes a turn
                     while t.sm.agent_busy or not t.turn_q.empty():
                         time.sleep(0.05)
                     time.sleep(0.2)

@@ -85,6 +85,12 @@ class StateMachine:
             if self.state == S.INTERRUPTED:
                 self._set(S.USER_SPEAKING, "user_continues")
 
+    def abort(self) -> None:
+        """INTERRUPTED -> LISTENING (a /stop command, not a user utterance)."""
+        with self.lock:
+            if self.state == S.INTERRUPTED:
+                self._set(S.LISTENING, "stopped")
+
     def vad_off(self) -> bool:
         with self.lock:
             if self.state == S.USER_SPEAKING:

@@ -1,0 +1,41 @@
+# SearXNG settings for the voice agent (local, single user, JSON API on).
+# Loaded via SEARXNG_SETTINGS_PATH by search/run_searxng.py. Merges over searx/settings.yml defaults.
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "voiceAgent search"
+
+server:
+  secret_key: "voiceagent-local-only-2f7c9e1b4a8d6f0e3c5b7a9d1e2f4c6b"
+  bind_address: "127.0.0.1"
+  port: 8888
+  limiter: false          # no bot detection: this instance is only reachable from this machine
+  public_instance: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json                 # required: without this /search?format=json returns 403
+
+outgoing:
+  request_timeout: 4.0
+  max_request_timeout: 10.0
+  pool_connections: 50
+  pool_maxsize: 20
+
+# Defaults already enable duckduckgo, brave, startpage, wikipedia, wikidata, github, stackoverflow, arxiv.
+# Google is opportunistic (its scraper breaks a few times a year); bing is off (no paging / weak relevance).
+engines:
+  - name: google
+    disabled: false
+  - name: bing
+    disabled: true
+  - name: qwant
+    disabled: true        # captcha from this IP
+  - name: duckduckgo
+    disabled: true        # captcha from this IP; brave/startpage/google/wikipedia carry general search

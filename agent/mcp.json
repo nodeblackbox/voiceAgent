@@ -1,0 +1,26 @@
+{
+  "_comment": "MCP servers the agent can attach. transport: stdio (command+args) or streamable_http (url). Set enabled true to auto-connect at start; /mcp on <name> connects at runtime.",
+  "servers": {
+    "demo": {
+      "transport": "stdio",
+      "command": "${VENV_PYTHON}",
+      "args": ["agent/mcp_servers/demo_server.py"],
+      "enabled": true,
+      "description": "local demo server: calculator + unit conversion + dice, proves the MCP plumbing"
+    },
+    "filesystem": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:\\Downloads\\voiceAgent"],
+      "enabled": false,
+      "description": "official filesystem server scoped to this project (needs Node; first run downloads it)"
+    },
+    "fetch": {
+      "transport": "stdio",
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "enabled": false,
+      "description": "official fetch server (overlaps with read_page; here as an example)"
+    }
+  }
+}
