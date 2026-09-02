@@ -1,0 +1,128 @@
+{
+  "threshold": 0.5,
+  "min_silence_ms": 300,
+  "pad_ms": 30,
+  "onnx": false,
+  "rows": [
+    {
+      "file": "handy-1785143065.wav",
+      "audio_s": 64.32,
+      "segments": 11,
+      "speech_s": 58.7,
+      "first_speech_s": 0.4,
+      "last_end_s": 63.4,
+      "chunk_cost_p50_ms": 0.616,
+      "chunk_cost_p95_ms": 1.532,
+      "segs": [
+        [
+          0.4,
+          2.0
+        ],
+        [
+          2.5,
+          9.9
+        ],
+        [
+          10.5,
+          13.2
+        ],
+        [
+          13.6,
+          20.4
+        ],
+        [
+          20.7,
+          40.0
+        ],
+        [
+          40.4,
+          41.0
+        ],
+        [
+          41.4,
+          44.8
+        ],
+        [
+          45.2,
+          46.6
+        ],
+        [
+          46.9,
+          47.3
+        ],
+        [
+          47.9,
+          56.1
+        ],
+        [
+          56.5,
+          63.4
+        ]
+      ]
+    },
+    {
+      "file": "handy-1787724741.wav",
+      "audio_s": 1.71,
+      "segments": 1,
+      "speech_s": 1.0,
+      "first_speech_s": 0.3,
+      "last_end_s": 1.3,
+      "chunk_cost_p50_ms": 0.631,
+      "chunk_cost_p95_ms": 1.078,
+      "segs": [
+        [
+          0.3,
+          1.3
+        ]
+      ]
+    },
+    {
+      "file": "handy-1787724752.wav",
+      "audio_s": 1.2,
+      "segments": 1,
+      "speech_s": 0.5,
+      "first_speech_s": 0.3,
+      "last_end_s": 0.8,
+      "chunk_cost_p50_ms": 0.559,
+      "chunk_cost_p95_ms": 0.691,
+      "segs": [
+        [
+          0.3,
+          0.8
+        ]
+      ]
+    },
+    {
+      "file": "handy-1787878656.wav",
+      "audio_s": 4.44,
+      "segments": 1,
+      "speech_s": 4.04,
+      "first_speech_s": 0.4,
+      "last_end_s": 4.44,
+      "chunk_cost_p50_ms": 0.605,
+      "chunk_cost_p95_ms": 0.989,
+      "segs": [
+        [
+          0.4,
+          4.44
+        ]
+      ]
+    },
+    {
+      "file": "handy-1787881187.wav",
+      "audio_s": 2.79,
+      "segments": 1,
+      "speech_s": 1.7,
+      "first_speech_s": 0.1,
+      "last_end_s": 1.8,
+      "chunk_cost_p50_ms": 0.584,
+      "chunk_cost_p95_ms": 0.944,
+      "segs": [
+        [
+          0.1,
+          1.8
+        ]
+      ]
+    }
+  ]
+}

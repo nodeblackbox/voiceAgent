@@ -1,0 +1,632 @@
+{
+  "groq": {
+    "keys": [
+      {
+        "label": "key1_tokyo1",
+        "ok": false,
+        "error": "Client error '401 Unauthorized' for url 'https://api.groq.com/openai/v1/models'\nFor more information check: https://deve"
+      },
+      {
+        "label": "key0_tokyo2",
+        "ok": true,
+        "models": 14
+      },
+      {
+        "label": "key2_noproxy",
+        "ok": true,
+        "models": 14
+      },
+      {
+        "label": "key3_noproxy",
+        "ok": true,
+        "models": 14
+      },
+      {
+        "label": "key4_noproxy",
+        "ok": true,
+        "models": 14
+      }
+    ],
+    "models": [
+      {
+        "id": "allam-2-7b",
+        "owned_by": "SDAIA",
+        "context": 4096,
+        "max_output": 4096,
+        "active": true
+      },
+      {
+        "id": "canopylabs/orpheus-arabic-saudi",
+        "owned_by": "Canopy Labs",
+        "context": 4000,
+        "max_output": 50000,
+        "active": true
+      },
+      {
+        "id": "canopylabs/orpheus-v1-english",
+        "owned_by": "Canopy Labs",
+        "context": 4000,
+        "max_output": 50000,
+        "active": true
+      },
+      {
+        "id": "groq/compound",
+        "owned_by": "Groq",
+        "context": 131072,
+        "max_output": 8192,
+        "active": true
+      },
+      {
+        "id": "groq/compound-mini",
+        "owned_by": "Groq",
+        "context": 131072,
+        "max_output": 8192,
+        "active": true
+      },
+      {
+        "id": "meta-llama/llama-prompt-guard-2-22m",
+        "owned_by": "Meta",
+        "context": 512,
+        "max_output": 512,
+        "active": true
+      },
+      {
+        "id": "meta-llama/llama-prompt-guard-2-86m",
+        "owned_by": "Meta",
+        "context": 512,
+        "max_output": 512,
+        "active": true
+      },
+      {
+        "id": "openai/gpt-oss-120b",
+        "owned_by": "OpenAI",
+        "context": 131072,
+        "max_output": 65536,
+        "active": true
+      },
+      {
+        "id": "openai/gpt-oss-20b",
+        "owned_by": "OpenAI",
+        "context": 131072,
+        "max_output": 65536,
+        "active": true
+      },
+      {
+        "id": "openai/gpt-oss-safeguard-20b",
+        "owned_by": "OpenAI",
+        "context": 131072,
+        "max_output": 65536,
+        "active": true
+      },
+      {
+        "id": "qwen/qwen3.6-27b",
+        "owned_by": "Alibaba Cloud",
+        "context": 131072,
+        "max_output": 16384,
+        "active": true
+      },
+      {
+        "id": "qwen/qwen3.8-27b",
+        "owned_by": "Alibaba Cloud",
+        "context": 131042,
+        "max_output": 16384,
+        "active": true
+      },
+      {
+        "id": "whisper-large-v3",
+        "owned_by": "OpenAI",
+        "context": 448,
+        "max_output": 448,
+        "active": true
+      },
+      {
+        "id": "whisper-large-v3-turbo",
+        "owned_by": "OpenAI",
+        "context": 448,
+        "max_output": 448,
+        "active": true
+      }
+    ]
+  },
+  "anthropic": {
+    "models": [
+      {
+        "id": "claude-fable-5-1",
+        "display": "Claude Fable 5.1",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-08-28"
+      },
+      {
+        "id": "claude-opus-5",
+        "display": "Claude Opus 5",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-07-24"
+      },
+      {
+        "id": "claude-sonnet-5",
+        "display": "Claude Sonnet 5",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-06-29"
+      },
+      {
+        "id": "claude-fable-5",
+        "display": "Claude Fable 5",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-06-07"
+      },
+      {
+        "id": "claude-opus-4-8",
+        "display": "Claude Opus 4.8",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-05-28"
+      },
+      {
+        "id": "claude-opus-4-7",
+        "display": "Claude Opus 4.7",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-04-14"
+      },
+      {
+        "id": "claude-sonnet-4-6",
+        "display": "Claude Sonnet 4.6",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-02-17"
+      },
+      {
+        "id": "claude-opus-4-6",
+        "display": "Claude Opus 4.6",
+        "context": 1000000,
+        "max_output": 128000,
+        "created": "2026-02-04"
+      },
+      {
+        "id": "claude-opus-4-5-20251101",
+        "display": "Claude Opus 4.5",
+        "context": 200000,
+        "max_output": 64000,
+        "created": "2025-11-24"
+      },
+      {
+        "id": "claude-haiku-4-5-20251001",
+        "display": "Claude Haiku 4.5",
+        "context": 200000,
+        "max_output": 64000,
+        "created": "2025-10-15"
+      },
+      {
+        "id": "claude-sonnet-4-5-20250929",
+        "display": "Claude Sonnet 4.5",
+        "context": 1000000,
+        "max_output": 64000,
+        "created": "2025-09-29"
+      }
+    ]
+  },
+  "gemini": {
+    "models": [
+      {
+        "id": "antigravity-preview-05-2026",
+        "display": "Antigravity Agent Preview",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "aqa",
+        "display": "Model that performs Attributed Question Answering.",
+        "context": 7168,
+        "max_output": 1024,
+        "chat": false,
+        "methods": "generateAnswer"
+      },
+      {
+        "id": "deep-research-max-preview-04-2026",
+        "display": "Deep Research Max Preview (Apr-21-2026)",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "deep-research-preview-04-2026",
+        "display": "Deep Research Preview (Apr-21-2026)",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "deep-research-pro-preview-12-2025",
+        "display": "Deep Research Pro Preview (Dec-12-2025)",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "gemini-2.5-computer-use-preview-10-2025",
+        "display": "Gemini 2.5 Computer Use Preview 10-2025",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "gemini-2.5-flash",
+        "display": "Gemini 2.5 Flash",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-flash-image",
+        "display": "Nano Banana",
+        "context": 32768,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-flash-lite",
+        "display": "Gemini 2.5 Flash-Lite",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-flash-native-audio-latest",
+        "display": "Gemini 2.5 Flash Native Audio Latest",
+        "context": 131072,
+        "max_output": 8192,
+        "chat": false,
+        "methods": "countTokens,bidiGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-flash-native-audio-preview-09-2025",
+        "display": "Gemini 2.5 Flash Native Audio Preview 09-2025",
+        "context": 131072,
+        "max_output": 8192,
+        "chat": false,
+        "methods": "countTokens,bidiGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-flash-native-audio-preview-12-2025",
+        "display": "Gemini 2.5 Flash Native Audio Preview 12-2025",
+        "context": 131072,
+        "max_output": 8192,
+        "chat": false,
+        "methods": "countTokens,bidiGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-flash-preview-tts",
+        "display": "Gemini 2.5 Flash Preview TTS",
+        "context": 8192,
+        "max_output": 16384,
+        "chat": true,
+        "methods": "countTokens,generateContent"
+      },
+      {
+        "id": "gemini-2.5-pro",
+        "display": "Gemini 2.5 Pro",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-2.5-pro-preview-tts",
+        "display": "Gemini 2.5 Pro Preview TTS",
+        "context": 8192,
+        "max_output": 16384,
+        "chat": true,
+        "methods": "countTokens,generateContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3-flash-preview",
+        "display": "Gemini 3 Flash Preview",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3-pro-image",
+        "display": "Nano Banana Pro",
+        "context": 131072,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3-pro-image-preview",
+        "display": "Nano Banana Pro",
+        "context": 131072,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-image",
+        "display": "Nano Banana 2",
+        "context": 65536,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-image-preview",
+        "display": "Nano Banana 2",
+        "context": 65536,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-lite",
+        "display": "Gemini 3.1 Flash Lite",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-lite-image",
+        "display": "Nano Banana 2 Lite",
+        "context": 65536,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-lite-preview",
+        "display": "Gemini 3.1 Flash Lite Preview",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-live-preview",
+        "display": "Gemini 3.1 Flash Live Preview",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": false,
+        "methods": "bidiGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-flash-tts-preview",
+        "display": "Gemini 3.1 Flash TTS Preview",
+        "context": 8192,
+        "max_output": 16384,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-pro-preview",
+        "display": "Gemini 3.1 Pro Preview",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.1-pro-preview-customtools",
+        "display": "Gemini 3.1 Pro Preview Custom Tools",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.5-flash",
+        "display": "Gemini 3.5 Flash",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.5-flash-lite",
+        "display": "Gemini 3.5 Flash Lite",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.5-live-translate-preview",
+        "display": "Gemini 3.5 Live Translate Preview",
+        "context": 16384,
+        "max_output": 32768,
+        "chat": false,
+        "methods": "bidiGenerateContent"
+      },
+      {
+        "id": "gemini-3.5-transcribe",
+        "display": "Gemini 3.5 Transcribe",
+        "context": 98304,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "gemini-3.5-transcribe-live",
+        "display": "Gemini 3.5 Transcribe Live",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": false,
+        "methods": "bidiGenerateContent"
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "display": "Gemini 3.6 Flash",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-3.7-flash",
+        "display": "Gemini 3.7 Flash",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-embedding-001",
+        "display": "Gemini Embedding 001",
+        "context": 2048,
+        "max_output": 1,
+        "chat": false,
+        "methods": "embedContent,countTextTokens,countTokens,asyncBatchEmbedContent"
+      },
+      {
+        "id": "gemini-embedding-2",
+        "display": "Gemini Embedding 2",
+        "context": 8192,
+        "max_output": 1,
+        "chat": false,
+        "methods": "embedContent,countTextTokens,countTokens,asyncBatchEmbedContent"
+      },
+      {
+        "id": "gemini-embedding-2-preview",
+        "display": "Gemini Embedding 2 Preview",
+        "context": 8192,
+        "max_output": 1,
+        "chat": false,
+        "methods": "embedContent,countTextTokens,countTokens,asyncBatchEmbedContent"
+      },
+      {
+        "id": "gemini-flash-latest",
+        "display": "Gemini Flash Latest",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-flash-lite-latest",
+        "display": "Gemini Flash-Lite Latest",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-omni-1.1-flash",
+        "display": "Gemini Omni 1.1 Flash",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "gemini-omni-flash-preview",
+        "display": "Gemini Omni Flash Preview",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "gemini-pro-latest",
+        "display": "Gemini Pro Latest",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-robotics-er-2-preview",
+        "display": "Gemini Robotics-ER 2 Preview",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
+        "id": "gemini-robotics-er-2-streaming-preview",
+        "display": "Gemini Robotics-ER 2 Streaming Preview",
+        "context": 131072,
+        "max_output": 65536,
+        "chat": false,
+        "methods": "bidiGenerateContent"
+      },
+      {
+        "id": "gemma-4-26b-a4b-it",
+        "display": "Gemma 4 26B A4B IT",
+        "context": 262144,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "gemma-4-31b-it",
+        "display": "Gemma 4 31B IT",
+        "context": 262144,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "lyria-3-clip-preview",
+        "display": "Lyria 3 Clip Preview",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "lyria-3-pro-preview",
+        "display": "Lyria 3 Pro Preview",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "nano-banana-pro-preview",
+        "display": "Nano Banana Pro",
+        "context": 131072,
+        "max_output": 32768,
+        "chat": true,
+        "methods": "generateContent,countTokens,batchGenerateContent"
+      },
+      {
+        "id": "veo-3.1-fast-generate-preview",
+        "display": "Veo 3.1 fast",
+        "context": 480,
+        "max_output": 8192,
+        "chat": false,
+        "methods": "predictLongRunning"
+      },
+      {
+        "id": "veo-3.1-generate-preview",
+        "display": "Veo 3.1",
+        "context": 480,
+        "max_output": 8192,
+        "chat": false,
+        "methods": "predictLongRunning"
+      },
+      {
+        "id": "veo-3.1-lite-generate-preview",
+        "display": "Veo 3.1 lite",
+        "context": 480,
+        "max_output": 8192,
+        "chat": false,
+        "methods": "predictLongRunning"
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "voice": "af_heart",
+  "speed": 1.0,
+  "load_s": 3.8357383999973536,
+  "warmup_s": 1.4750661002472043,
+  "vram_mib": 549.533203125,
+  "wps": 25,
+  "play": true,
+  "stream": {
+    "ttfa_ms": 488.0087999626994,
+    "t_last_text": 0.24288150016218424,
+    "t_done": 3.360760699957609,
+    "underruns": 0,
+    "sentences": [
+      {
+        "idx": 0,
+        "text": "Hello, this is a quick GPU test.",
+        "chars": 32,
+        "t_ready": 0.28385069966316223,
+        "gen_s": 0.16632789932191372,
+        "audio_s": 2.825,
+        "rtf": 0.058877132503332284
+      }
+    ]
+  }
+}

@@ -1,0 +1,279 @@
+<title>Parakeet on the Yeti</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #EDF0F2; --surface: #FFFFFF; --line: #D3DAE0; --ink: #141C24; --muted: #5A6A78;
+    --accent: #0E6E8C; --accent-soft: #D8EAF0; --good: #237A3F; --warn: #A86A0D; --bad: #B23A2E;
+    --bar-hybrid: #0E6E8C; --bar-cuda: #6E8FA3; --bar-cpu: #B9C4CC;
+    --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+    --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1418; --surface: #161E25; --line: #2A3540; --ink: #E4EBF0; --muted: #92A2B0;
+      --accent: #46B8D6; --accent-soft: #123643; --good: #5CC47E; --warn: #E0A84A; --bad: #E56B60;
+      --bar-hybrid: #46B8D6; --bar-cuda: #5F8299; --bar-cpu: #3C4B58;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0E1418; --surface: #161E25; --line: #2A3540; --ink: #E4EBF0; --muted: #92A2B0;
+    --accent: #46B8D6; --accent-soft: #123643; --good: #5CC47E; --warn: #E0A84A; --bad: #E56B60;
+    --bar-hybrid: #46B8D6; --bar-cuda: #5F8299; --bar-cpu: #3C4B58;
+  }
+  body { background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55; margin: 0; }
+  main { max-width: 76ch; margin: 0 auto; padding: 40px 20px 80px; }
+  h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.1; margin: 0; }
+  h1 { font-size: clamp(34px, 5vw, 48px); font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; font-weight: 600; margin-top: 56px; margin-bottom: 14px; }
+  h3 { font-size: 18px; font-weight: 600; margin-top: 26px; margin-bottom: 8px; }
+  p { margin: 0 0 14px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .lede { font-size: 19px; color: var(--muted); margin-top: 14px; max-width: 62ch; }
+  .meta { font-family: var(--mono); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 22px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 28px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); padding: 16px 16px 14px; }
+  .tile .n { font-family: var(--mono); font-size: 30px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile .n small { font-size: 15px; color: var(--muted); margin-left: 2px; }
+  .tile .l { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.3; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .tw { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); margin: 12px 0 18px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-size: 14px; }
+  td b { font-weight: 600; }
+  .pill { display: inline-block; font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 999px; line-height: 1.5; }
+  .pill.good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+  .pill.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+  .findings { display: grid; gap: 12px; margin-top: 14px; }
+  .finding { background: var(--surface); border-left: 3px solid var(--accent); padding: 14px 18px; }
+  .finding h3 { margin-top: 0; }
+  .finding p { margin: 0; }
+  .bars { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; align-items: center; margin: 14px 0 6px; font-size: 15px; }
+  .bars .lab { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .bar { height: 22px; display: flex; align-items: center; }
+  .bar i { display: block; height: 100%; }
+  .bar span { font-family: var(--mono); font-size: 13px; margin-left: 8px; white-space: nowrap; }
+  .bar.hybrid i { background: var(--bar-hybrid); } .bar.cuda i { background: var(--bar-cuda); } .bar.cpu i { background: var(--bar-cpu); }
+  .caption { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+  figure { margin: 18px 0 0; }
+  svg text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; }
+  pre { font-family: var(--mono); font-size: 14px; background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; overflow-x: auto; margin: 10px 0 16px; }
+  ul { padding-left: 22px; margin: 0 0 14px; }
+  li { margin-bottom: 6px; }
+  .quote { font-family: var(--mono); font-size: 14px; background: var(--surface); border: 1px solid var(--line); padding: 10px 14px; margin: 8px 0; }
+  .quote .who { color: var(--muted); }
+</style>
+
+<main>
+  <div class="eyebrow">First-pass benchmark · 2 Sep 2026</div>
+  <h1>Parakeet on the Yeti</h1>
+  <p class="lede">Can parakeet-tdt-0.6b-v3 hear you and Kokoro talk back, on this Windows box, fast enough for a voice agent? Yes. The numbers below are the budget to design around.</p>
+  <div class="meta">
+    <span>RTX 4090 · driver 551.23</span><span>Windows 11, native (no WSL)</span><span>onnx-asr 0.12 · onnxruntime-gpu 1.26</span><span>kokoro 0.9.4 · torch 2.6 cu124</span><span>Blue Yeti Classic</span>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="n">45<small>ms</small></div><div class="l">Parakeet, one 4.4 s utterance (best; median 79 ms)</div></div>
+    <div class="tile"><div class="n">147<small>ms</small></div><div class="l">Parakeet, the 64 s monologue (RTFx 437)</div></div>
+    <div class="tile"><div class="n">3.6<small>GB</small></div><div class="l">VRAM for Parakeet; Kokoro adds 0.55 GB</div></div>
+    <div class="tile"><div class="n">0.6<small>ms</small></div><div class="l">Silero VAD per 32 ms chunk, CPU</div></div>
+    <div class="tile"><div class="n">8<small>/10</small></div><div class="l">mid-monologue pauses Smart Turn v3.2 held</div></div>
+    <div class="tile"><div class="n">441<small>ms</small></div><div class="l">Kokoro: first word in to first audio out, 0 gaps</div></div>
+    <div class="tile"><div class="n">270<small>ms</small></div><div class="l">Groq gpt-oss-20b: first speakable sentence</div></div>
+  </div>
+
+  <h2>One turn, in milliseconds</h2>
+  <p>What the agent waits for after you stop talking. Measured on the live loop with the recordings replayed in real time as a simulated microphone, and confirmed with your voice.</p>
+  <figure>
+    <svg viewBox="0 0 720 150" width="100%" role="img" aria-label="Timeline of one turn: 600 ms hangover then 160 to 240 ms ASR, about 800 ms total">
+      <line x1="40" y1="30" x2="40" y2="118" stroke="var(--line)"/>
+      <text x="40" y="20" text-anchor="middle">you stop</text>
+      <rect x="40" y="40" width="400" height="26" fill="var(--accent-soft)"/>
+      <text x="240" y="57" text-anchor="middle" style="fill: var(--ink)">silence hangover · 600 ms</text>
+      <rect x="440" y="40" width="140" height="26" fill="var(--accent)"/>
+      <text x="510" y="57" text-anchor="middle" style="fill: #FFFFFF">ASR 160–240 ms</text>
+      <line x1="580" y1="30" x2="580" y2="118" stroke="var(--line)"/>
+      <text x="580" y="20" text-anchor="middle">text ready · ~800 ms</text>
+      <rect x="40" y="84" width="200" height="26" fill="var(--accent-soft)"/>
+      <text x="140" y="101" text-anchor="middle" style="fill: var(--ink)">300 ms</text>
+      <rect x="240" y="84" width="47" height="26" fill="var(--warn)"/>
+      <text x="263" y="101" text-anchor="middle" style="fill: #FFFFFF; font-size: 10px">turn</text>
+      <rect x="287" y="84" width="140" height="26" fill="var(--accent)"/>
+      <text x="357" y="101" text-anchor="middle" style="fill: #FFFFFF">ASR</text>
+      <line x1="427" y1="78" x2="427" y2="118" stroke="var(--line)"/>
+      <text x="427" y="132" text-anchor="middle">with Smart Turn gating · ~580 ms</text>
+      <text x="40" y="132" text-anchor="start">0</text>
+      <text x="706" y="132" text-anchor="end">1 px = 1.5 ms</text>
+    </svg>
+    <p class="caption">Top row is what runs today. Bottom row is the projected budget if Smart Turn replaces most of the hangover: 300 ms silence, a 70 ms turn check, then ASR. In-loop ASR is 3 to 4× slower than the same audio offline (see the live-loop section) and is the first thing to fix. After the text: the model's first token, then ~450 ms to Kokoro's first audio.</p>
+  </figure>
+
+  <h2>What changed the plan</h2>
+  <div class="findings">
+    <div class="finding">
+      <h3>The first "CUDA" run was secretly on CPU</h3>
+      <p>The newest cuDNN (9.25) fails on this driver at the very first Conv node, and onnxruntime quietly rebuilds the session on CPU and carries on. Every mode came out at the same speed (RTFx 13) and that was the tell. Fixed by pinning cuDNN 9.1.1 with the CUDA 12.4 runtimes, disabling the fallback so it is a hard error, and re-checking providers after warm-up. Driver 551.23 also rules out CUDA 13, so onnxruntime-gpu is pinned to 1.26 and torch to 2.6 cu124. A driver update to 580 or newer lifts all of these pins.</p>
+    </div>
+    <div class="finding">
+      <h3>The decoder belongs on the CPU</h3>
+      <p>The transducer decoder runs once per 80 ms frame with tiny tensors. On the GPU each of those calls is launch-bound (0.5 to 0.7 ms per frame); the int8 decoder on CPU runs at 0.14 to 0.24 ms per frame. The encoder on CUDA takes 30 to 40 ms even for a minute of audio. "Hybrid" (CUDA encoder, int8 CPU decoder) is 1.4× faster than all-GPU on short clips and 2.7× on the monologue, and is now the default.</p>
+    </div>
+    <div class="finding">
+      <h3>Accuracy equals Handy's, plus fillers and punctuation</h3>
+      <p>Every difference from Handy's transcript of the same audio is a filler word. Handy strips "um" and "uh"; Parakeet keeps them and adds capitals and punctuation. No real word errors on the five files. The word-error figures against Handy (0.05 to 0.15) are entirely those fillers.</p>
+    </div>
+    <div class="finding">
+      <h3>Windows renumbers audio devices between sessions</h3>
+      <p>Index 52 was the Yeti when enumerated during the build and a virtual cable when you ran it, so the first live attempts heard silence. The scripts now select the mic by name (<code>--device Yeti</code>) and print which device they opened.</p>
+    </div>
+  </div>
+
+  <h2>Parakeet: where the time goes</h2>
+  <p>Best of three, one call, split into encoder, decoder loop and total. Preprocessing is 2 to 10 ms in every mode.</p>
+  <div class="tw"><table>
+    <tr><th>mode</th><th class="num">4.4 s · enc</th><th class="num">dec</th><th class="num">total</th><th class="num">64 s · enc</th><th class="num">dec</th><th class="num">total</th><th class="num">RTFx (64 s)</th></tr>
+    <tr><td><b>hybrid</b> · CUDA encoder + int8 CPU decoder</td><td class="num">33</td><td class="num">14</td><td class="num"><b>51</b></td><td class="num">39</td><td class="num">116</td><td class="num"><b>171</b></td><td class="num">375</td></tr>
+    <tr><td>cuda · everything on GPU</td><td class="num">31</td><td class="num">37</td><td class="num">70</td><td class="num">43</td><td class="num">408</td><td class="num">461</td><td class="num">139</td></tr>
+    <tr><td>cpu int8 · Handy's path</td><td class="num">317</td><td class="num">15</td><td class="num">342</td><td class="num">4574</td><td class="num">153</td><td class="num">4787</td><td class="num">13</td></tr>
+  </table></div>
+  <div class="bars">
+    <div class="lab">64 s · hybrid</div><div class="bar hybrid"><i style="width:3.6%"></i><span>171 ms</span></div>
+    <div class="lab">64 s · cuda</div><div class="bar cuda"><i style="width:9.6%"></i><span>461 ms</span></div>
+    <div class="lab">64 s · cpu int8</div><div class="bar cpu"><i style="width:100%"></i><span>4787 ms</span></div>
+  </div>
+  <p class="caption">Same scale for all three bars.</p>
+
+  <h3>Per file, hybrid, best of five</h3>
+  <div class="tw"><table>
+    <tr><th>recording</th><th class="num">audio</th><th class="num">best</th><th class="num">median</th><th class="num">RTFx</th><th class="num">WER vs Handy</th></tr>
+    <tr><td>limit-order monologue</td><td class="num">64.3 s</td><td class="num">147</td><td class="num">169</td><td class="num">437</td><td class="num">0.07</td></tr>
+    <tr><td>"Oh, that's very sweet."</td><td class="num">1.7 s</td><td class="num">35</td><td class="num">50</td><td class="num">50</td><td class="num">0.00</td></tr>
+    <tr><td>"Thank you."</td><td class="num">1.2 s</td><td class="num">37</td><td class="num">52</td><td class="num">32</td><td class="num">0.00</td></tr>
+    <tr><td>"testing, testing, one two three…"</td><td class="num">4.4 s</td><td class="num">45</td><td class="num">79</td><td class="num">99</td><td class="num">0.15</td></tr>
+    <tr><td>"Yeah, testing, testing…"</td><td class="num">2.8 s</td><td class="num">44</td><td class="num">55</td><td class="num">64</td><td class="num">0.00</td></tr>
+  </table></div>
+  <div class="quote"><span class="who">Parakeet:</span> Uh testing, testing. One, two, three. Okay. This is um you know, we're testing it.</div>
+  <div class="quote"><span class="who">Handy:&nbsp;&nbsp;&nbsp;</span> testing, testing, one two, three, okay, this is you know, we're testing it.</div>
+
+  <h2>Silero VAD: your pauses are 0.3 to 0.6 s</h2>
+  <p>Silero costs 0.58 ms per 32 ms chunk (p95 0.70 ms) on CPU and catches the first word 100 to 400 ms after onset. The hangover, the silence it waits for before declaring the end, decides whether one thought becomes one utterance or five.</p>
+  <div class="tw"><table>
+    <tr><th>hangover</th><th class="num">segments in the 64 s monologue</th><th>what split it</th></tr>
+    <tr><td>300 ms</td><td class="num">11</td><td>every 0.3 to 0.6 s thinking pause</td></tr>
+    <tr><td>500 ms</td><td class="num">3</td><td>two 0.6 s pauses</td></tr>
+    <tr><td>800 ms</td><td class="num">1</td><td>nothing</td></tr>
+    <tr><td>1200 ms</td><td class="num">1</td><td>nothing</td></tr>
+  </table></div>
+  <p>A silence-only endpointer therefore needs 600 to 800 ms of hangover for the way you talk, and pays it on every turn. That is the case for a turn model.</p>
+
+  <h2>Smart Turn v3.2: it knows a pause from an ending</h2>
+  <p>Pipecat's 8.7 MB end-of-turn model, run on CPU with onnxruntime, listens to the last 8 s of waveform and scores whether you sound finished. All five whole recordings scored done (0.70 to 0.99). The real test is the monologue cut at each of Silero's 300 ms pauses, the exact moments a silence-only endpointer would have interrupted you.</p>
+  <div class="tw"><table>
+    <tr><th class="num">cut at</th><th class="num">p(done)</th><th>verdict</th><th>what was just said</th></tr>
+    <tr><td class="num">2.0 s</td><td class="num">0.006</td><td><span class="pill good">held</span></td><td>"And then, um…"</td></tr>
+    <tr><td class="num">9.9 s</td><td class="num">0.006</td><td><span class="pill good">held</span></td><td>"…where the limit order is, um"</td></tr>
+    <tr><td class="num">13.2 s</td><td class="num">0.933</td><td><span class="pill warn">released</span></td><td>"…it didn't visualize it." (a full sentence)</td></tr>
+    <tr><td class="num">20.4 s</td><td class="num">0.013</td><td><span class="pill good">held</span></td><td>"…or something like that,"</td></tr>
+    <tr><td class="num">40.0 s</td><td class="num">0.009</td><td><span class="pill good">held</span></td><td>mid-sentence</td></tr>
+    <tr><td class="num">41.0 s</td><td class="num">0.006</td><td><span class="pill good">held</span></td><td>mid-sentence</td></tr>
+    <tr><td class="num">44.8 s</td><td class="num">0.012</td><td><span class="pill good">held</span></td><td>mid-sentence</td></tr>
+    <tr><td class="num">46.6 s</td><td class="num">0.008</td><td><span class="pill good">held</span></td><td>mid-sentence</td></tr>
+    <tr><td class="num">47.3 s</td><td class="num">0.023</td><td><span class="pill good">held</span></td><td>mid-sentence</td></tr>
+    <tr><td class="num">56.1 s</td><td class="num">0.805</td><td><span class="pill warn">released</span></td><td>"…if the price passes me and stuff like that." (a full sentence)</td></tr>
+    <tr><td class="num">63.4 s</td><td class="num">0.904</td><td><span class="pill good">done</span></td><td>"…please." (the real end)</td></tr>
+  </table></div>
+  <p>Cost 68 ms p50, 100 ms p95 per call. The two releases land on complete sentences, which for a conversational agent is defensible behaviour rather than a miss. With this as the gate the hangover could drop to about 300 ms.</p>
+
+  <h2>Live loop</h2>
+  <p>Mic at 16 kHz in 512-sample chunks, Silero gate, a 1 s pre-roll ring buffer so the first syllable survives, then one Parakeet pass per utterance. First with the recordings replayed in real time through the same code path:</p>
+  <div class="tw"><table>
+    <tr><th>run</th><th class="num">utterances</th><th class="num">speech end → text, p50</th><th class="num">ASR in-loop, p50</th></tr>
+    <tr><td>4.4 s clip, 600 ms hangover</td><td class="num">1</td><td class="num">766 ms</td><td class="num">157 ms</td></tr>
+    <tr><td>64 s monologue, 600 ms hangover</td><td class="num">4</td><td class="num">807 ms</td><td class="num">209 ms</td></tr>
+  </table></div>
+  <p>Then with your voice through the Yeti at 04:45, three utterances:</p>
+  <div class="tw"><table>
+    <tr><th class="num">#</th><th class="num">audio</th><th class="num">ASR in-loop</th><th class="num">speech end → text</th><th>heard</th></tr>
+    <tr><td class="num">1</td><td class="num">13.9 s</td><td class="num">219 ms</td><td class="num">829 ms</td><td>"Okay, um can it hear me? No, it's not hearing me…"</td></tr>
+    <tr><td class="num">2</td><td class="num">1.1 s</td><td class="num">103 ms</td><td class="num">714 ms</td><td>"Great."</td></tr>
+    <tr><td class="num">3</td><td class="num">7.9 s</td><td class="num">212 ms</td><td class="num">814 ms</td><td>"Uh oh shit it is, it is, it is, it is, it is, my bad…"</td></tr>
+  </table></div>
+  <p>The repeated "it is" is in the recording: three different decoder configurations transcribe it identically, so it is not a decoder loop. ASR inside the loop is 3 to 4× slower than offline on the same audio (100 to 240 ms against 45 to 79 ms). The likely cause is the torch VAD loop and the int8 CPU decoder sharing one Python process. Moving Silero to onnxruntime or the ASR to its own process is the next experiment.</p>
+
+  <h2>Kokoro-82M: the other half of the turn</h2>
+  <p>Kokoro renders a whole segment at once, so the streaming that matters is pipelining by sentence: LLM tokens pass through a sentence chunker, a generator thread renders sentence N+1 while sentence N plays, and <code>interrupt()</code> flushes the queue for barge-in. One resident model on the GPU, no effects chain.</p>
+  <div class="tw"><table>
+    <tr><th>metric</th><th class="num">value</th></tr>
+    <tr><td>load (cached) / warm-up</td><td class="num">4 s / 1.4 s</td></tr>
+    <tr><td>VRAM</td><td class="num">550 MB</td></tr>
+    <tr><td>per sentence, 33 to 105 characters</td><td class="num">133 to 182 ms (RTF 0.03 to 0.05)</td></tr>
+    <tr><td>first word in → first audio out, LLM at 25 words/s</td><td class="num"><b>441 ms</b> on the Yeti headphone out</td></tr>
+    <tr><td>gaps between sentences over 22 s</td><td class="num">0</td></tr>
+    <tr><td>barge-in: audio after <code>interrupt()</code></td><td class="num">0 ms, stopped within 5 ms</td></tr>
+    <tr><td>round trip: Parakeet listening to Kokoro</td><td class="num">WER 0.027 (only "barge-in" misheard)</td></tr>
+  </table></div>
+  <p class="caption">First audio = 0.28 s for the first seven words to arrive + ~150 to 200 ms of Kokoro + one 21 ms block. A faster model stream or an earlier first-clause release shortens it.</p>
+
+  <h2>The thinking part: which model answers fastest</h2>
+  <p>Every provider goes through LiteLLM, so swapping is a string. Three spoken-style probes per model, streaming; the column that matters is the first complete sentence, because that is when Kokoro can start.</p>
+  <div class="tw"><table>
+    <tr><th>model</th><th class="num">first token</th><th class="num">first sentence</th><th>note</th></tr>
+    <tr><td><b>groq/openai/gpt-oss-20b</b></td><td class="num">232 – 294 ms</td><td class="num"><b>269 – 328 ms</b></td><td>default; reasoning set to low</td></tr>
+    <tr><td>groq/qwen/qwen3.8-27b</td><td class="num">136 – 448 ms</td><td class="num">169 – 495 ms</td><td>fastest best case</td></tr>
+    <tr><td>groq/openai/gpt-oss-120b</td><td class="num">334 – 342 ms</td><td class="num">362 – 393 ms</td><td></td></tr>
+    <tr><td>groq/groq/compound-mini</td><td class="num">487 – 824 ms</td><td class="num">508 – 874 ms</td><td></td></tr>
+    <tr><td>anthropic/claude-haiku-4-5</td><td class="num">644 – 689 ms</td><td class="num">821 – 1309 ms</td><td>fastest Anthropic option</td></tr>
+    <tr><td>anthropic/claude-opus-5</td><td class="num">1.3 – 4.1 s</td><td class="num">1.6 – 4.1 s</td><td>thinks before answering</td></tr>
+    <tr><td>anthropic/claude-sonnet-5</td><td class="num">2.0 – 3.9 s</td><td class="num">2.6 – 5.1 s</td><td>thinks before answering</td></tr>
+    <tr><td>gemini/gemini-3.5-flash-lite</td><td class="num">478 – 531 ms</td><td class="num">532 – 579 ms</td><td>Gemini default</td></tr>
+    <tr><td>gemini/gemini-3.7-flash</td><td class="num">2.1 – 3.7 s</td><td class="num">one lump</td><td>thinking ate the token budget twice</td></tr>
+    <tr><td>gemini/gemini-3.5-flash</td><td class="num">1.6 – 2.1 s</td><td class="num">one lump</td><td>same</td></tr>
+  </table></div>
+  <p>Groq no longer serves the Llama models; its chat catalogue is gpt-oss-20b/120b, Qwen 3.6/3.8 27B and compound. One of the five Groq keys (key1_tokyo1) is invalid and is benched automatically; the pool rotates the other four on rate limits. The Anthropic key reaches 11 models, the Gemini key 38.</p>
+
+  <h2>The whole loop, from text</h2>
+  <p>Groq gpt-oss-20b feeding Kokoro through the sentence pipeline, three turns typed in rather than spoken so the numbers are repeatable.</p>
+  <div class="tw"><table>
+    <tr><th>turn</th><th class="num">LLM first sentence</th><th class="num">Kokoro first sentence</th><th class="num">turn start → first audio</th></tr>
+    <tr><td>"Can you hear me?"</td><td class="num">256 ms</td><td class="num">208 ms</td><td class="num"><b>477 ms</b></td></tr>
+    <tr><td>limit vs stop order</td><td class="num">330 ms</td><td class="num">302 ms</td><td class="num"><b>627 ms</b></td></tr>
+    <tr><td>through the headphones</td><td class="num">346 ms</td><td class="num">160 ms</td><td class="num"><b>532 ms</b></td></tr>
+  </table></div>
+  <p>Add the ~800 ms from speech end to text and a whole spoken turn lands at roughly 1.3 to 1.5 s from when you stop talking to when the agent starts, about 0.9 s with Smart Turn gating.</p>
+
+  <h2>The agent: barge-in, tools, live partials</h2>
+  <p><code>agent/talk.py</code> is the conversational loop on LangGraph with Claude Haiku 4.5. An explicit state machine (listening, user speaking, thinking, speaking, interrupted) owns every transition; an echo gate cross-correlates each mic chunk with the last second the speaker played so the agent cannot interrupt itself; Parakeet re-decodes the growing utterance every 0.6 s so your words appear while you are still saying them. After a barge-in the history holds only what you actually heard, plus a note of what was cut, so "go on" continues from the right place.</p>
+  <div class="tw"><table>
+    <tr><th>simulated run</th><th class="num">when</th><th>what happened</th></tr>
+    <tr><td>live partials</td><td class="num">every 0.6 s</td><td>"Uh testing test" → "Uh testing testing one two three." → the full sentence</td></tr>
+    <tr><td>utterance transcribed</td><td class="num">125 ms</td><td></td></tr>
+    <tr><td>agent starts speaking</td><td class="num">1.3 s after speech end</td><td>Haiku first sentence ≈ 900 ms of that</td></tr>
+    <tr><td>barge-in accepted</td><td class="num">1.8 s into the reply</td><td>heard up to "Hey, I hear you loud", 12 words dropped, Kokoro flushed within one block</td></tr>
+    <tr><td>second utterance answered</td><td class="num">1.7 s after its speech end</td><td>model continued cleanly with the cut in its history</td></tr>
+  </table></div>
+  <div class="tw"><table>
+    <tr><th>echo gate, synthetic</th><th class="num">result</th></tr>
+    <tr><td>echo chunks flagged (120 ms delay, quarter level)</td><td class="num">23 / 26</td></tr>
+    <tr><td>user speech wrongly flagged</td><td class="num">0 / 31</td></tr>
+    <tr><td>user talking over the echo wrongly flagged</td><td class="num">0 / 26</td></tr>
+    <tr><td>cost per 32 ms chunk</td><td class="num">0.7 ms</td></tr>
+  </table></div>
+  <p class="caption">With Haiku a whole turn is 1.7 to 1.9 s from speech end to first audio; Groq gpt-oss-20b in the same loop would take about 600 ms off that. Open-speaker echo behaviour still needs a human at the mic.</p>
+
+  <h2>Recommendations</h2>
+  <ul>
+    <li><b>Budget:</b> about 50 ms of ASR per utterance, 150 ms per minute of speech, 3.6 GB of VRAM, in hybrid mode.</li>
+    <li><b>Endpointing:</b> 600 ms hangover on Silero alone; about 300 ms plus a 70 ms Smart Turn check with the turn model.</li>
+    <li><b>Pre-roll:</b> keep the 1 s ring buffer; onset detection lags 100 to 400 ms.</li>
+    <li><b>Whole turn:</b> speech end → text ~0.8 s (≈0.5 s with Smart Turn) + the model's first token + ~0.45 s to first Kokoro audio. GPU: 3.6 GB Parakeet + 0.55 GB Kokoro, both resident.</li>
+    <li><b>Driver:</b> update NVIDIA to 580 or newer when convenient; that removes the CUDA 12, cuDNN and torch pins.</li>
+    <li><b>Word boosting:</b> not available in onnx-asr. A post-hoc term corrector or NeMo on Linux/WSL would be needed.</li>
+  </ul>
+  <h3>Try it</h3>
+  <pre>.venv\Scripts\python.exe agent\talk.py
+.venv\Scripts\python.exe agent\talk.py --model groq:openai/gpt-oss-20b</pre>
+  <p class="caption">Scripts in <code>bench/</code> and <code>tts/</code>, raw numbers in <code>results/*.json</code>, setup in <code>README.md</code>.</p>
+</main>

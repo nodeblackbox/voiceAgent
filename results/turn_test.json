@@ -1,0 +1,132 @@
+{
+  "threshold": 0.5,
+  "whole": [
+    {
+      "file": "handy-1785143065.wav",
+      "audio_s": 64.32,
+      "p": 0.839,
+      "verdict": "DONE",
+      "ms": 73.1
+    },
+    {
+      "file": "handy-1787724741.wav",
+      "audio_s": 1.71,
+      "p": 0.923,
+      "verdict": "DONE",
+      "ms": 65.2
+    },
+    {
+      "file": "handy-1787724752.wav",
+      "audio_s": 1.2,
+      "p": 0.98,
+      "verdict": "DONE",
+      "ms": 67.8
+    },
+    {
+      "file": "handy-1787878656.wav",
+      "audio_s": 4.44,
+      "p": 0.696,
+      "verdict": "DONE",
+      "ms": 107.8
+    },
+    {
+      "file": "handy-1787881187.wav",
+      "audio_s": 2.79,
+      "p": 0.99,
+      "verdict": "DONE",
+      "ms": 94.4
+    }
+  ],
+  "cuts": [
+    {
+      "cut": 1,
+      "at_s": 2.0,
+      "p": 0.006,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 77.6
+    },
+    {
+      "cut": 2,
+      "at_s": 9.9,
+      "p": 0.006,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 97.2
+    },
+    {
+      "cut": 3,
+      "at_s": 13.2,
+      "p": 0.933,
+      "verdict": "DONE",
+      "is_real_end": false,
+      "ms": 34.8
+    },
+    {
+      "cut": 4,
+      "at_s": 20.4,
+      "p": 0.013,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 61.5
+    },
+    {
+      "cut": 5,
+      "at_s": 40.0,
+      "p": 0.009,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 66.9
+    },
+    {
+      "cut": 6,
+      "at_s": 41.0,
+      "p": 0.006,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 61.9
+    },
+    {
+      "cut": 7,
+      "at_s": 44.8,
+      "p": 0.012,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 68.5
+    },
+    {
+      "cut": 8,
+      "at_s": 46.6,
+      "p": 0.008,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 97.9
+    },
+    {
+      "cut": 9,
+      "at_s": 47.3,
+      "p": 0.023,
+      "verdict": "not done",
+      "is_real_end": false,
+      "ms": 88.6
+    },
+    {
+      "cut": 10,
+      "at_s": 56.1,
+      "p": 0.805,
+      "verdict": "DONE",
+      "is_real_end": false,
+      "ms": 30.8
+    },
+    {
+      "cut": 11,
+      "at_s": 63.4,
+      "p": 0.904,
+      "verdict": "DONE",
+      "is_real_end": true,
+      "ms": 67.5
+    }
+  ],
+  "cost_p50_ms": 68.15584981814027,
+  "cost_p95_ms": 100.34600016660988
+}

@@ -1,0 +1,69 @@
+{
+  "model": "nemo-parakeet-tdt-0.6b-v3",
+  "device": "hybrid",
+  "quant": null,
+  "active_providers": [
+    "CPUExecutionProvider",
+    "CUDAExecutionProvider"
+  ],
+  "load_s": 4.455,
+  "process_gpu_mib": null,
+  "gpu_used_total_mib": [
+    7610,
+    24564
+  ],
+  "lat_p50_s": 0.0546,
+  "lat_p95_s": 0.1507,
+  "rows": [
+    {
+      "file": "handy-1785143065.wav",
+      "audio_s": 64.32,
+      "lat_min_s": 0.1472,
+      "lat_med_s": 0.1687,
+      "rtfx": 437.0,
+      "wer_vs_handy": 0.07,
+      "hyp": "And then um So when I opened up the limit order Um it didn't show up on the charts like to show where the limit order is um so I don't know like it didn't visualize it Um I also would like to be able to have um when I when I switch to like limit mode or something like that or like when I go to anything I want to be able to have the two buttons on the top on the top right so I can even probably like click on the buttons probably drag and I want to be able to drag to anywhere then it'll be able to take me give me a line for a limit order for anywhere I want on the chart and that'll be much easier than just typing the numbers so if I like click on a button and then I drag to somewhere um and then if the price hits that thingy then I guess you know uh it will you know uh stop my order but then I also need to have like buttons on that limit order and stuff like that that I can cancel that limit order or something like that or um execute if I need a market order right now like if the price uh passes me and stuff like that so I just need to get that all done please",
+      "ref": "And then so when I opened up the limit order, it didn't show up on the charts like to show where the limit order is. so I don't know, like it didn't visualize it. I also would like to be able to have when I when I switch to like limit mode or something like that, or like when I go to anything, I want to be able to have the two buttons on the top on the top, right? So I can even probably like click on the buttons, probably drag, and I want to be able to drag to anywhere, then it'll be able to take me and give me a line for a limit order for anywhere I want on the charts, and that'll be much easier than just type in the numbers. So if I like click on a button and then I drag to somewhere, and then if the price hits that thingy, then I guess you know it will you know stop my order, but then I also need to have like buttons on that limit order and stuff like that that can cancel that limit order or something like that, or execute if I need the market order right now, like if the price passes me and stuff like that. So I just need to get that all done, please."
+    },
+    {
+      "file": "handy-1787724741.wav",
+      "audio_s": 1.71,
+      "lat_min_s": 0.0346,
+      "lat_med_s": 0.0504,
+      "rtfx": 49.5,
+      "wer_vs_handy": 0.0,
+      "hyp": "Oh, that's very sweet.",
+      "ref": "Oh that's very sweet."
+    },
+    {
+      "file": "handy-1787724752.wav",
+      "audio_s": 1.2,
+      "lat_min_s": 0.0372,
+      "lat_med_s": 0.052,
+      "rtfx": 32.3,
+      "wer_vs_handy": 0.0,
+      "hyp": "Thank you.",
+      "ref": "Thank you."
+    },
+    {
+      "file": "handy-1787878656.wav",
+      "audio_s": 4.44,
+      "lat_min_s": 0.0447,
+      "lat_med_s": 0.0788,
+      "rtfx": 99.3,
+      "wer_vs_handy": 0.154,
+      "hyp": "Uh testing, testing. One, two, three, okay. This is um you know, we're testing it.",
+      "ref": "testing, testing, one two, three, okay, this is you know, we're testing it."
+    },
+    {
+      "file": "handy-1787881187.wav",
+      "audio_s": 2.79,
+      "lat_min_s": 0.0437,
+      "lat_med_s": 0.0546,
+      "rtfx": 63.9,
+      "wer_vs_handy": 0.0,
+      "hyp": "Yeah, testing, testing, one, two, three.",
+      "ref": "Yeah, testing, testing, one two, three."
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "voice": "af_heart",
+  "speed": 1.0,
+  "load_s": 3.9838685002177954,
+  "warmup_s": 1.405072900466621,
+  "vram_mib": 549.533203125,
+  "wps": 25,
+  "play": false,
+  "offline": {
+    "rows": [
+      {
+        "i": 0,
+        "chars": 21,
+        "gen_ms": 123.7,
+        "audio_s": 1.85,
+        "rtf": 0.067,
+        "text": "This is sentence one."
+      },
+      {
+        "i": 1,
+        "chars": 34,
+        "gen_ms": 135.4,
+        "audio_s": 2.55,
+        "rtf": 0.053,
+        "text": "Here is a second sentence to test."
+      },
+      {
+        "i": 2,
+        "chars": 63,
+        "gen_ms": 144.0,
+        "audio_s": 4.28,
+        "rtf": 0.034,
+        "text": "Now a third, slightly longer sentence to see if length matters."
+      },
+      {
+        "i": 3,
+        "chars": 10,
+        "gen_ms": 113.6,
+        "audio_s": 1.43,
+        "rtf": 0.08,
+        "text": "Short one."
+      },
+      {
+        "i": 4,
+        "chars": 43,
+        "gen_ms": 137.7,
+        "audio_s": 2.9,
+        "rtf": 0.047,
+        "text": "And a final sentence to close out the test."
+      }
+    ],
+    "vram_mib": 556.458984375
+  }
+}
