@@ -1,0 +1,31 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+[09/02/26 13:32:49] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, 
+search_history, forget, calculate, convert_units, roll_dice · type /help
+[  21.08s] listening → user speaking (vad_on)
+[  21.09s] user speaking → thinking (vad_off)
+#1 you  Which device is my Yeti on?
+     memory: 4 hint(s) attached
+[  22.06s] thinking → speaking (first_audio)
+[  26.81s] speaking → listening (playback_done)
+#1 af_heart  Your Yeti microphone is device forty seven on WASAPI.
+     asr -  llm→sentence 738ms  kokoro 228ms  end→audio 972ms
+       note  (today 13:30) Yeti microphone is device 47 on WASAPI
+       user  (today 13:31) Which device is my Yeti on?
+       user  (today 13:32) Which device is my Yeti on?
+       agent (today 13:30) Your Yeti microphone is device forty seven on WASAPI.
+       agent (today 13:32) Your Yeti microphone is device forty seven on WASAPI.
+       user  (today 13:30) Remember that my Yeti microphone is device forty 
+seven on WASAPI.
+     session: 1 turns, 0 interrupted
+     speech end → first audio   p50   972 ms   p95   972 ms
+     LLM first sentence         p50   738 ms   p95   738 ms
+     Kokoro first sentence      p50   228 ms   p95   228 ms
+     echo gate suppressed 0 chunks · backchannels ignored 0 · smart-turn checks 
+0 (p50 nan ms) · log D:\Downloads\voiceAgent\results\talk_20260902_133228.jsonl

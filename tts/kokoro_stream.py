@@ -148,6 +148,7 @@ class SpeakerSink:
         import sounddevice as sd
 
         self.on_play = on_play  # callback(float32 24 kHz block actually sent to the DAC), for the echo gate
+        self.gain = 1.0         # 1.0 normal; ~0.25 while "ducked" for a possible barge-in
         self.q: collections.deque[np.ndarray] = collections.deque()
         self.lock = threading.Lock()
         self.pending = np.zeros(0, dtype=np.float32)
@@ -188,6 +189,8 @@ class SpeakerSink:
         elif self.started and not self.finished:
             self.underruns += 1  # a callback with nothing to play while the generator still owes audio
         self.played_samples += pos
+        if self.gain != 1.0:
+            out *= self.gain
         if pos > 0 and self.on_play is not None:
             try:
                 self.on_play(out[:pos])
@@ -224,6 +227,8 @@ class SpeakerSink:
 
 class NullSink:
     """Same interface, no sound card: consumes audio at real-time pace so gaps still get measured."""
+
+    gain = 1.0
 
     def __init__(self, on_play=None, **_):
         self.on_play = on_play

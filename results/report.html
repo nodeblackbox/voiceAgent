@@ -274,6 +274,19 @@
     <tr><td>Groq agent turns with tools</td><td class="num">0.8 – 4.3 s</td><td>one unexplained 108 s turn earlier; 40 s stall watchdog added</td></tr>
   </table></div>
 
+  <h2>After the review: does it feel like a conversation</h2>
+  <p>Smart Turn now decides when you are done instead of a fixed hangover; a short "mhm" ducks the agent without cutting it; a filler phrase covers slow tools; and a SQLite full-text memory carries notes and past sessions into new ones.</p>
+  <div class="tw"><table>
+    <tr><th>simulated test</th><th>result</th></tr>
+    <tr><td>20 s monologue with 0.3–0.6 s pauses, Smart Turn on</td><td><span class="pill good">one turn</span> every pause held; fallback fired at 1.2 s because the clip was cut mid-sentence (score 0.13)</td></tr>
+    <tr><td>same audio, 300 ms hangover instead</td><td><span class="pill warn">five+ turns</span> one of them just "Mm so"</td></tr>
+    <tr><td>0.3 s burst while the agent talks</td><td><span class="pill good">ducked, ignored</span> counted as a backchannel</td></tr>
+    <tr><td>2.8 s utterance while the agent talks</td><td><span class="pill good">cut at 320 ms</span> "heard up to" logged, new utterance answered</td></tr>
+    <tr><td>three-page research call</td><td><span class="pill good">filler spoken</span> "Still looking." during 15 s of tool time</td></tr>
+    <tr><td>note saved in one session, asked in the next</td><td><span class="pill good">recalled</span> from the memory block, no tool call, 738 ms to first sentence</td></tr>
+    <tr><td>Anthropic 529 overloaded</td><td>seen once live; now one retry, then the turn runs on Groq</td></tr>
+  </table></div>
+
   <h2>Recommendations</h2>
   <ul>
     <li><b>Budget:</b> about 50 ms of ASR per utterance, 150 ms per minute of speech, 3.6 GB of VRAM, in hybrid mode.</li>

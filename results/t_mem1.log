@@ -1,0 +1,54 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+     search on (SearXNG already up at http://127.0.0.1:8888)
+[09/02/26 13:30:01] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, 
+search_history, forget, web_search, read_page, research, calculate, 
+convert_units, roll_dice · type /help
+[  25.76s] listening → user speaking (vad_on)
+[  25.76s] user speaking → thinking (vad_off)
+#1 you  Remember that my Yeti microphone is device forty seven on WASAPI.
+     ⚙ remember(...)
+     ⚙ remember → saved note #1
+[  28.42s] thinking → speaking (first_audio)
+[  30.16s] speaking → listening (playback_done)
+#1 af_heart  Got it, saved.
+     asr -  llm→sentence 2401ms  kokoro 206ms  end→audio 2658ms
+[  30.36s] listening → user speaking (vad_on)
+[  30.37s] user speaking → thinking (vad_off)
+#2 you  What did I ask you to remember?
+[  31.34s] thinking → speaking (first_audio)
+[  36.10s] speaking → listening (playback_done)
+#2 af_heart  Your Yeti microphone is device forty seven on WASAPI.
+     asr -  llm→sentence 788ms  kokoro 174ms  end→audio 973ms
+       #1 (today 13:30) Yeti microphone is device 47 on WASAPI
+[  36.50s] listening → user speaking (vad_on)
+[  36.50s] user speaking → thinking (vad_off)
+#3 you  Read the Hugging Face model page for parakeet tdt 0.6b v3 and tell me 
+how many languages it supports.
+     ⚙ web_search(...)
+[  37.72s] thinking → speaking (first_audio)
+     ⚙ web_search → 1. nvidia/parakeet-tdt-0.6b-v3 - Hugging Face
+   https://huggingface.co/nvidia/parakeet-td
+     ⚙ read_page(...)
+     ⚙ read_page → nvidia/parakeet-tdt-0.6b-v3 · Hugging Face (2023-05-08)
+
+parakeet-tdt-0.6b-v3 is a 600-mil
+[  65.73s] speaking → listening (playback_done)
+#3 af_heart  Let me look that up.Now let me read the official NVIDIA model 
+page.It supports twenty five languages: Bulgarian, Croatian, Czech, Danish, 
+Dutch, English, Estonian, Finnish, French, German, Greek, Hungarian, Italian, 
+Latvian, Lithuanian, Maltese, Polish, Portuguese, Romanian, Slovak, Slovenian, 
+Spanish, Swedish, Russian, and Ukrainian.
+     asr -  llm→sentence 1065ms  kokoro 128ms  end→audio 1212ms
+     session: 3 turns, 0 interrupted
+     speech end → first audio   p50  1212 ms   p95  2513 ms
+     LLM first sentence         p50  1065 ms   p95  2268 ms
+     Kokoro first sentence      p50   174 ms   p95   203 ms
+     echo gate suppressed 0 chunks · backchannels ignored 0 · smart-turn checks 
+0 (p50 nan ms) · log D:\Downloads\voiceAgent\results\talk_20260902_132935.jsonl

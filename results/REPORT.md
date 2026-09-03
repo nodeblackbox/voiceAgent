@@ -180,6 +180,18 @@ MCP: a local demo server (calculator, units, dice) attaches from mcp.json; Haiku
 
 One unexplained event: a single Groq turn took 108 s inside the agent loop while Groq alone answered in under 0.5 s; it did not recur across seven later turns. A 40 s stall watchdog now abandons such a turn instead of freezing the loop.
 
+## After the review: endpointing, backchannels, fillers, memory
+
+| test (simulated mic) | result |
+|---|---|
+| 20 s of the monologue, Smart Turn on (250 ms min, 1.2 s max) | one turn; every 0.3-0.6 s pause held; ended by the 1.2 s fallback because the clip was cut mid-sentence (score 0.13) |
+| same audio, Smart Turn off, 300 ms hangover | five or more turns, one of them just "Mm so" |
+| 0.3 s burst over the agent | volume ducked, "backchannel ignored", no cut |
+| 2.8 s utterance over the agent | cut at 320 ms of speech, "heard up to" logged, answered the new utterance |
+| three-page research call | "Still looking." spoken during the 15 s of tool time |
+| note saved in one session, asked in the next | answered from the memory block with no tool call, 738 ms to first sentence |
+| Anthropic 529 overloaded | seen live once; now retried once, then the turn runs on Groq |
+
 ## Recommendations
 
 - Use hybrid mode. Budget ~50 ms ASR per utterance, ~150 ms for a minute of speech.

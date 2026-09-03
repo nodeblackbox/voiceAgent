@@ -41,6 +41,8 @@ from commands import CommandRouter  # noqa: E402
 from keys import LineReader  # noqa: E402
 from common import RESULTS_DIR, assert_cuda_still_active, load_parakeet, load_wav_16k, pct, resolve_input_device, wasapi_settings  # noqa: E402
 from echo_gate import EchoGate  # noqa: E402
+from endpoint import Endpointer  # noqa: E402
+from memory import Memory, make_tools as make_memory_tools  # noqa: E402
 from kokoro_stream import SR as TTS_SR, KokoroTTS, NullSink, SentenceChunker, SpeakerSink, StreamingSpeech  # noqa: E402
 from prompts import voice_system_prompt  # noqa: E402
 from state import S, StateMachine, Turn  # noqa: E402
@@ -55,6 +57,11 @@ Web
 - Speak the source by name ("according to the NVIDIA page"), never read out a URL.
 - Be economical: one web_search plus at most one read_page usually answers a question. The moment you have the answer, say it; do not re-search to double-check unless the user asked for certainty. Use research(question) when you genuinely need several pages.
 - If a page is blocked or unreadable, say so and answer from what you have rather than trying the same page again.
+"""
+
+MEMORY_PROMPT_ADDON = """
+Memory
+- You have remember/recall/search_history/forget. Save things the user asks you to remember, and preferences they state clearly. A user message may end with a bracketed [memory ...] block: those are hints pulled from past sessions, use them if relevant and ignore them if not; never read the block out loud.
 """
 
 INTERRUPT_PROMPT_ADDON = """
@@ -80,6 +87,9 @@ def resolve_output_device(spec):
     return hits[0][0]
 
 
+FILLERS = ["Still looking.", "One sec.", "Almost there.", "Bear with me."]
+
+
 class Talk:
     def __init__(self, a: argparse.Namespace):
         self.a = a
@@ -97,6 +107,10 @@ class Talk:
         self.muted = False
         self.quit = threading.Event()
         self.router = self._build_commands()
+        self.mem = Memory()
+        self.filler_samples = 0
+        self.filler_i = 0
+        self.backchannels = 0
 
     # ---------------------------------------------------------------- loading
     def load(self):
@@ -106,13 +120,18 @@ class Talk:
             self.asr, _, _ = load_parakeet("hybrid")
             self.asr.recognize(np.zeros(SR, dtype=np.float32))
             assert_cuda_still_active(self.asr, "hybrid")
+        self.ui.set_status("loading Smart Turn…")
+        self.ep = Endpointer(min_silence_ms=a.min_silence, max_silence_ms=a.max_silence, use_model=a.smart_turn)
         self.ui.set_status("loading Kokoro…")
         self.tts = KokoroTTS(voice=a.voice)
         self.sink = NullSink(on_play=self.echo.push_played) if a.no_play else \
             SpeakerSink(device=resolve_output_device(a.out_device), on_play=self.echo.push_played)
         self.ui.set_status("connecting to model…")
-        system = voice_system_prompt(agent_name=a.agent_name, user_name=a.user_name) + SEARCH_PROMPT_ADDON + INTERRUPT_PROMPT_ADDON
-        self.brain = Brain(a.model, system_prompt=system, max_tokens=a.max_tokens, search=False)
+        system = (voice_system_prompt(agent_name=a.agent_name, user_name=a.user_name) + SEARCH_PROMPT_ADDON
+                  + MEMORY_PROMPT_ADDON + INTERRUPT_PROMPT_ADDON)
+        from brain import current_time
+        self.brain = Brain(a.model, system_prompt=system, max_tokens=a.max_tokens, search=False,
+                           tools=[current_time] + make_memory_tools(self.mem))
         self.brain.on_notice = lambda msg: self.ui.note(msg, "yellow")
         self.brain.warm()
         if a.search:
@@ -143,7 +162,7 @@ class Talk:
         def _help(args):
             return r.help_text()
 
-        @r.add("model", "model <provider:model>", "switch the model, e.g. groq:openai/gpt-oss-20b")
+        @r.add("model", "model <spec|fast|smart|opus|sonnet|gemini|qwen>", "switch the model (fast = Groq gpt-oss-20b, smart = Haiku 4.5)")
         def _model(args):
             if not args:
                 return f"model is {self.brain.model_spec}"
@@ -245,6 +264,21 @@ class Talk:
                     f"search {'on' if self.brain.search_on else 'off'} · mcp {', '.join(self.brain.mcp_tools) or 'none'} · "
                     f"{'muted' if self.muted else 'sound on'} · echo gate suppressed {self.echo.suppressed}\n  {lt}")
 
+        @r.add("memory", "memory [search <q> | notes | forget <id> | stats]", "the SQLite memory (cheap RAG)")
+        def _memory(args):
+            if not args or args[0] == "stats":
+                st = self.mem.stats()
+                return f"{st['turns']} turns, {st['notes']} notes, {st['sessions']} sessions · {st['db']}"
+            if args[0] == "notes":
+                return "\n".join(f"  #{n['id']} ({n['when']}) {n['text']}" for n in self.mem.recent_notes(10)) or "  (no notes)"
+            if args[0] == "search" and len(args) > 1:
+                q = " ".join(args[1:])
+                rows = self.mem.search_notes(q, 5) + self.mem.search_turns(q, 5)
+                return "\n".join(f"  {x.get('role', 'note'):5} ({x['when']}) {x['text'][:120]}" for x in rows) or "  nothing"
+            if args[0] == "forget" and len(args) > 1:
+                return "deleted" if self.mem.forget(int(args[1])) else "no such note"
+            return "usage: /memory [search <q> | notes | forget <id> | stats]"
+
         @r.add("quit", "quit", "exit")
         def _quit(args):
             self.quit.set()
@@ -268,6 +302,7 @@ class Talk:
         sess = StreamingSpeech(self.tts, sink, speed=a.speed, chunker=SentenceChunker(first_min_words=a.first_min_words))
         self.session = sess
         self.turn_sink = sink
+        self.filler_samples = 0
         self.session_play0 = sink.played_samples
         sink.finished = False
         sink.first_audio_wall = None
@@ -279,11 +314,37 @@ class Talk:
             if self.turn_sink.first_audio_wall and self.sm.state == S.THINKING:
                 self.sm.first_audio()
 
+        tool_pending = {"n": 0}
+
+        def filler_after(delay: float, tool_n: int):
+            """While the tool runs: if the speaker has been silent for `delay` s, say one short filler."""
+            silent_since = None
+            while tool_pending["n"] == tool_n and not self.cancel.is_set():
+                if self.muted:
+                    return
+                if sink.queued_samples() > 0:
+                    silent_since = None
+                else:
+                    silent_since = silent_since or time.perf_counter()
+                    if time.perf_counter() - silent_since >= delay:
+                        phrase = FILLERS[self.filler_i % len(FILLERS)]
+                        self.filler_i += 1
+                        audio = self.tts.synth(phrase, a.speed)
+                        if tool_pending["n"] == tool_n and not self.cancel.is_set():
+                            self.filler_samples += len(audio)
+                            sink.push(audio)
+                            self.ui.note(f"filler: {phrase}", "dim")
+                        return
+                time.sleep(0.1)
+
         def on_tool_call(name):
             sess.flush()  # say the lead-in phrase now, not after the tool returns
             self.ui.tool(name)
+            tool_pending["n"] += 1
+            threading.Thread(target=filler_after, args=(a.filler_after, tool_pending["n"]), daemon=True).start()
 
         def on_tool_result(name, res):
+            tool_pending["n"] += 1  # invalidates the pending filler
             self.ui.tool(name, res)
 
         # watch for first audio while the LLM is still streaming (audio can start before the next delta)
@@ -295,8 +356,13 @@ class Talk:
                 time.sleep(0.01)
         threading.Thread(target=watch_audio, daemon=True).start()
 
-        r = self.brain.stream_turn(turn.user_text, on_text=on_text, on_tool_call=on_tool_call,
+        ctx = self.mem.context_for(turn.user_text)
+        model_text = turn.user_text + ("\n" + ctx if ctx else "")
+        if ctx:
+            self.ui.note(f"memory: {ctx.count(chr(10)) - 1} hint(s) attached", "dim")
+        r = self.brain.stream_turn(model_text, on_text=on_text, on_tool_call=on_tool_call,
                                    on_tool_result=on_tool_result, cancel=self.cancel)
+        turn.user_text_for_model = model_text
         if r.error:
             self.ui.note(f"model error: {r.error}", "red")
             sess.feed("Sorry, I lost the model for a second. Say that again.")
@@ -305,7 +371,9 @@ class Talk:
         m = sess.wait(timeout=180)
         spoken, unspoken = self._spoken_split(sess, r.text)
         interrupted = r.interrupted or self.cancel.is_set()
-        self.brain.commit(turn.user_text, r, spoken if interrupted else r.text, unspoken if interrupted else "")
+        self.brain.commit(turn.user_text_for_model, r, spoken if interrupted else r.text, unspoken if interrupted else "")
+        self.mem.log_turn("user", turn.user_text)
+        self.mem.log_turn("agent", spoken if interrupted else r.text, interrupted)
         self.echo.set_active(False)
         self.session = None
         if not interrupted:
@@ -328,7 +396,7 @@ class Talk:
 
     def _spoken_split(self, sess: StreamingSpeech, full_text: str) -> tuple[str, str]:
         """Which words actually came out of the speaker before the cut."""
-        played = self.turn_sink.played_samples - self.session_play0
+        played = self.turn_sink.played_samples - self.session_play0 - self.filler_samples
         spoken_parts, cum = [], 0
         for s in sess.m.sentences:
             n = int(s.audio_s * TTS_SR)
@@ -431,6 +499,7 @@ class Talk:
         if sys.stdin.isatty() and not a.sim:
             keys = LineReader(on_line=self.on_command_line, on_change=self.ui.set_input)
             keys.start()
+        ducked = False
         for chunk in chunks_source:
             if self.quit.is_set():
                 break
@@ -445,18 +514,36 @@ class Talk:
                 thr = a.bargein_threshold if st != S.LISTENING else a.threshold
                 if p >= thr and not echo:
                     hot += 1
-                    if st == S.LISTENING or hot >= a.bargein_chunks:
-                        if st != S.LISTENING:
-                            self.barge_in()
-                            if self.sm.state != S.USER_SPEAKING:
-                                continue
-                        else:
-                            self.sm.vad_on()
+                    if st == S.LISTENING:
+                        self.sm.vad_on()
+                        self.ep.start_utterance()
                         t_on = t_last = now
                         utt = list(preroll)
                         last_partial_len = 0
                         hot = 0
+                    else:
+                        # two-stage barge-in: duck first (a backchannel "mhm" passes), cut only if speech is sustained
+                        if hot >= a.duck_chunks and not ducked:
+                            ducked = True
+                            self.sink.gain = a.duck_gain
+                        if hot >= a.bargein_chunks:
+                            self.sink.gain = 1.0
+                            ducked = False
+                            self.barge_in()
+                            if self.sm.state != S.USER_SPEAKING:
+                                continue
+                            self.ep.start_utterance()
+                            t_on = t_last = now
+                            utt = list(preroll)
+                            last_partial_len = 0
+                            hot = 0
                 else:
+                    if ducked:
+                        ducked = False
+                        self.sink.gain = 1.0
+                        if hot >= a.duck_chunks:
+                            self.backchannels += 1
+                            self.ui.note("backchannel ignored", "dim")
                     hot = 0
             elif st in (S.USER_SPEAKING, S.INTERRUPTED):
                 utt.append(chunk)
@@ -468,10 +555,17 @@ class Talk:
                     last_partial_len = total
                     partial_busy.set()
                     threading.Thread(target=partial_job, args=(np.concatenate(utt),), daemon=True).start()
-                if (now - t_last) * 1e3 >= a.min_silence or (now - t_on) >= a.max_utt:
+                sil_ms = (now - t_last) * 1e3
+                decision = self.ep.update(np.concatenate(utt) if sil_ms >= self.ep.min_ms else None, sil_ms) \
+                    if sil_ms >= self.ep.min_ms else None
+                if decision or (now - t_on) >= a.max_utt:
                     audio = np.concatenate(utt)
                     if (t_last - t_on) * 1e3 >= a.min_speech:
                         self.sm.vad_off()
+                        if decision == "done" and self.ep.last_p is not None:
+                            self.ui.note(f"turn end: smart-turn {self.ep.last_p:.2f} after {sil_ms:.0f} ms", "dim")
+                        elif decision == "timeout":
+                            self.ui.note(f"turn end: silence {sil_ms:.0f} ms" + (f" (smart-turn last {self.ep.last_p:.2f})" if self.ep.last_p is not None else ""), "dim")
                         self.turn_q.put((audio, t_last, None))
                     else:
                         self.sm.blip()
@@ -508,7 +602,11 @@ class Talk:
         """Real-time replay: utterance wav, silence, and (optionally) a second wav injected while the agent speaks."""
         a = self.a
         first = load_wav_16k(Path(a.sim))
+        if a.sim_len:
+            first = first[: int(a.sim_len * SR)]
         barge = load_wav_16k(Path(a.sim_bargein)) if a.sim_bargein else None
+        if barge is not None and a.sim_bargein_len:
+            barge = barge[: int(a.sim_bargein_len * SR)]
         stream = np.concatenate([np.zeros(SR // 2, dtype=np.float32), first, np.zeros(SR, dtype=np.float32)])
         pos, injected, t_begin = 0, False, time.perf_counter()
         i = 0
@@ -546,7 +644,8 @@ class Talk:
             v = [getattr(t, k) for t in self.turns if getattr(t, k)]
             if v:
                 self.ui.note(f"{label:26} p50 {pct(v, 50):5.0f} ms   p95 {pct(v, 95):5.0f} ms")
-        self.ui.note(f"echo gate suppressed {self.echo.suppressed} chunks · log {self.log_path}")
+        self.ui.note(f"echo gate suppressed {self.echo.suppressed} chunks · backchannels ignored {self.backchannels} · "
+                     f"smart-turn checks {self.ep.checks} (p50 {pct(self.ep.cost_ms, 50):.0f} ms) · log {self.log_path}")
 
 
 def main():
@@ -562,9 +661,16 @@ def main():
     ap.add_argument("--out-device", default="Yeti")
     ap.add_argument("--threshold", type=float, default=0.5)
     ap.add_argument("--bargein-threshold", type=float, default=0.75)
-    ap.add_argument("--bargein-chunks", type=int, default=4, help="consecutive 32 ms VAD hits to interrupt (4 = 128 ms)")
+    ap.add_argument("--bargein-chunks", type=int, default=10, help="consecutive 32 ms VAD hits to cut the agent (10 = 320 ms)")
+    ap.add_argument("--duck-chunks", type=int, default=3, help="hits before the voice is ducked (3 = 96 ms)")
+    ap.add_argument("--duck-gain", type=float, default=0.25)
+    ap.add_argument("--smart-turn", action=argparse.BooleanOptionalAction, default=True, help="Smart Turn v3.2 end-of-turn model")
+    ap.add_argument("--max-silence", type=int, default=1200, help="hard end of turn after this much silence (ms)")
+    ap.add_argument("--filler-after", type=float, default=1.5, help="seconds a tool may run silently before a filler phrase")
+    ap.add_argument("--sim-len", type=float, default=0, help="use only the first N s of --sim")
+    ap.add_argument("--sim-bargein-len", type=float, default=0, help="use only the first N s of --sim-bargein (0.3 = a backchannel)")
     ap.add_argument("--echo-corr", type=float, default=0.45, help="echo-gate correlation above which mic = agent's own voice")
-    ap.add_argument("--min-silence", type=int, default=600)
+    ap.add_argument("--min-silence", type=int, default=250, help="silence before Smart Turn starts scoring (ms)")
     ap.add_argument("--min-speech", type=int, default=250)
     ap.add_argument("--preroll", type=float, default=1.0)
     ap.add_argument("--max-utt", type=float, default=30.0)

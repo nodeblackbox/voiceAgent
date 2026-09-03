@@ -64,8 +64,17 @@ def recall(query: str = "") -> str:
     return "\n".join(f"{n['t']}: {n['note']}" for n in hits) or "nothing matches"
 
 
-BUILTIN_TOOLS = [current_time, remember, recall]
+BUILTIN_TOOLS = [current_time, remember, recall]   # JSON-file fallback when no Memory is given
 DEFAULT_TOOLS = BUILTIN_TOOLS  # kept for older imports
+
+MODEL_ALIASES = {
+    "fast": "groq:openai/gpt-oss-20b",
+    "smart": "anthropic:claude-haiku-4-5",
+    "opus": "anthropic:claude-opus-5",
+    "sonnet": "anthropic:claude-sonnet-5",
+    "gemini": "google_genai:gemini-3.5-flash-lite",
+    "qwen": "groq:qwen/qwen3.8-27b",
+}
 
 
 # --------------------------------------------------------------------------- result of one turn
@@ -116,9 +125,10 @@ def load_mcp_config(path: Path = MCP_CONFIG) -> dict:
 class Brain:
     def __init__(self, model_spec: str = "anthropic:claude-haiku-4-5", system_prompt: str = "",
                  tools=None, temperature: float = 0.6, max_tokens: int = 400, search: bool = False,
-                 max_steps: int = 12, stall_s: float = 40.0):
-        self.max_steps = max_steps  # LangGraph recursion limit: ~5 tool round-trips per turn
-        self.stall_s = stall_s      # give up on a turn if nothing arrives for this long
+                 max_steps: int = 12, stall_s: float = 8.0, tool_stall_s: float = 25.0):
+        self.max_steps = max_steps        # LangGraph recursion limit: ~5 tool round-trips per turn
+        self.stall_s = stall_s            # no model output for this long -> abandon the turn (voice can't wait)
+        self.tool_stall_s = tool_stall_s  # ...unless a tool is running (page reads take seconds)
         self.system_prompt = system_prompt
         self.temperature, self.max_tokens = temperature, max_tokens
         self.history: list[BaseMessage] = []
@@ -130,6 +140,7 @@ class Brain:
         self.mcp_tools: dict[str, list] = {}
         self.groq_key = None
         self.on_notice = None   # optional callback(str) for UI notices (key rotation, trims)
+        self.fallback_spec = MODEL_ALIASES["fast"]  # used for one turn when the primary model is overloaded
         # private event loop thread for the graph + MCP
         self.loop = asyncio.new_event_loop()
         threading.Thread(target=self.loop.run_forever, daemon=True, name="brain-loop").start()
@@ -140,6 +151,7 @@ class Brain:
         return asyncio.run_coroutine_threadsafe(coro, self.loop).result(timeout)
 
     def set_model(self, model_spec: str) -> str:
+        model_spec = MODEL_ALIASES.get(model_spec, model_spec)
         provider = model_spec.split(":", 1)[0]
         if provider == "groq":
             k = groq_pool().first_working()
@@ -262,10 +274,26 @@ class Brain:
     def stream_turn(self, user_text: str, *, on_text, on_tool_call=None, on_tool_result=None,
                     cancel: threading.Event | None = None) -> TurnResult:
         """Run one agent turn on the private loop; deliver deltas synchronously via callbacks."""
+        primary = self.model_spec
         for attempt in range(4):
             r = self._stream_once(user_text, on_text=on_text, on_tool_call=on_tool_call,
                                   on_tool_result=on_tool_result, cancel=cancel)
-            if r.error and "rate" in r.error.lower() and self.model_spec.startswith("groq") and not r.text:
+            err = (r.error or "").lower()
+            transient = any(k in err for k in ("overloaded", "529", "503", "502", "timeout", "connection"))
+            if r.error and transient and not r.text and attempt == 0:
+                time.sleep(0.4)
+                continue                                   # one quick retry on the same model
+            if r.error and transient and not r.text and self.model_spec != self.fallback_spec:
+                if self.on_notice:
+                    self.on_notice(f"{self.model_spec} is overloaded → answering this turn with {self.fallback_spec}")
+                self.set_model(self.fallback_spec)
+                try:
+                    r = self._stream_once(user_text, on_text=on_text, on_tool_call=on_tool_call,
+                                          on_tool_result=on_tool_result, cancel=cancel)
+                finally:
+                    self.set_model(primary)                # back to the user's choice for the next turn
+                return r
+            if r.error and "rate" in err and self.model_spec.startswith("groq") and not r.text:
                 pool = groq_pool()
                 if self.groq_key is not None:
                     pool.bench(self.groq_key)          # 60 s cool-down for the key that hit its TPM cap
@@ -304,11 +332,13 @@ class Brain:
 
         fut = asyncio.run_coroutine_threadsafe(produce(), self.loop)
         seen_tool_ids: set[str] = set()
+        tools_in_flight = 0
         while True:
+            budget = self.tool_stall_s if tools_in_flight else self.stall_s
             try:
-                item = q.get(timeout=self.stall_s)
+                item = q.get(timeout=budget)
             except queue.Empty:
-                r.error = f"model stalled: no output for {self.stall_s:.0f}s"
+                r.error = f"model stalled: no output for {budget:.0f}s" + (" (tool running)" if tools_in_flight else "")
                 fut.cancel()
                 break
             if item is None:
@@ -333,6 +363,7 @@ class Brain:
                         tid = tc.get("id") or tc.get("name")
                         if tc.get("name") and tid not in seen_tool_ids:
                             seen_tool_ids.add(tid)
+                            tools_in_flight += 1
                             r.tool_calls.append(tc["name"])
                             if r.first_sentence_ms is None and r.text.strip():
                                 r.first_sentence_ms = (time.perf_counter() - t0) * 1e3
@@ -347,8 +378,10 @@ class Brain:
                         if r.first_sentence_ms is None and any(p in r.text for p in (". ", "! ", "? ", ".\n")):
                             r.first_sentence_ms = now
                         on_text(text)
-                elif isinstance(chunk, ToolMessage) and on_tool_result:
-                    on_tool_result(chunk.name, _content_text(chunk.content)[:200])
+                elif isinstance(chunk, ToolMessage):
+                    tools_in_flight = max(0, tools_in_flight - 1)
+                    if on_tool_result:
+                        on_tool_result(chunk.name, _content_text(chunk.content)[:200])
             elif mode == "updates":
                 for _node, out in (data or {}).items():
                     if isinstance(out, dict):

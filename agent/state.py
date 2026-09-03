@@ -34,6 +34,7 @@ class S(enum.Enum):
 class Turn:
     n: int
     user_text: str = ""
+    user_text_for_model: str = ""
     partial: str = ""                       # live transcript while speaking
     assistant_text: str = ""                # everything the model streamed
     spoken_text: str = ""                   # what actually came out of the speaker

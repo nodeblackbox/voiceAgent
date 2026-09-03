@@ -1,0 +1,39 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+     search on (SearXNG already up at http://127.0.0.1:8888)
+[09/02/26 13:33:46] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, 
+search_history, forget, web_search, read_page, research, calculate, 
+convert_units, roll_dice · type /help
+[  20.49s] listening → user speaking (vad_on)
+[  20.49s] user speaking → thinking (vad_off)
+#1 you  Use the research tool to find out what smart turn v3 by pipecat is and 
+read three pages.
+     memory: 3 hint(s) attached
+     anthropic:claude-haiku-4-5 is overloaded → answering this turn with 
+groq:openai/gpt-oss-20b
+     ⚙ research(...)
+     filler: Still looking.
+[  26.49s] thinking → speaking (first_audio)
+     ⚙ research → ## 
+https://huggingface.co/pipecat-ai/smart-turn-v3/discussions/1
+https://huggingface.co/pi
+[  68.29s] speaking → listening (playback_done)
+#1 af_heart  Smart‑Turn v3 is Pipecat’s open‑source, semantic 
+voice‑activity‑detection model that tells a voice agent when a human stops 
+talking so it can respond. It’s a lightweight, <60 ms CPU inference model that 
+supports 23 languages and is bundled in Pipecat’s 0.0.85 release. The model 
+weights and training code are on Hugging Face, and the release notes highlight 
+its speed and license‑free use.
+     asr -  llm→sentence 15574ms  kokoro 397ms  end→audio 5992ms
+     session: 1 turns, 0 interrupted
+     speech end → first audio   p50  5992 ms   p95  5992 ms
+     LLM first sentence         p50 15574 ms   p95 15574 ms
+     Kokoro first sentence      p50   397 ms   p95   397 ms
+     echo gate suppressed 0 chunks · backchannels ignored 0 · smart-turn checks 
+0 (p50 nan ms) · log D:\Downloads\voiceAgent\results\talk_20260902_133326.jsonl

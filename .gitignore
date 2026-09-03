@@ -9,3 +9,4 @@ results/*.wav
 results/notes.json
 results/searxng.log
 search/searxng-src/
+results/memory.sqlite*

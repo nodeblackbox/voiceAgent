@@ -166,3 +166,28 @@ turn costs ~1,300 tokens, so a lively conversation hits the cap in a minute. The
 retries and, on a 429, benches that key for 60 s and switches to the next working key in `GROQ_KEYS` (four working
 keys = ~32k tokens/min). Tool results are trimmed to 700 chars in history after each turn so a read web page does
 not sit in every later request. Verified: the switch fires mid-conversation and the next reply arrives in ~0.5 s.
+
+## Conversational feel: endpointing, backchannels, fillers, fallbacks, memory
+
+Added after the first review, all verified with the simulated mic (`results/t_*.log`):
+
+| feature | what it does | evidence |
+|---|---|---|
+| **Smart Turn in the loop** (`agent/endpoint.py`) | after 250 ms of silence, Smart Turn v3.2 scores the utterance every 200 ms; "finished" ends the turn, otherwise it waits up to 1.2 s | 20 s monologue with 0.3-0.6 s pauses stayed one turn; the same audio with a 300 ms hangover became 5+ turns, one of them "Mm so" |
+| **Two-stage barge-in** | 96 ms of speech ducks the voice to 25%; 320 ms of sustained speech cuts it; shorter bursts restore the volume and count as backchannels | 0.3 s burst: "backchannel ignored", no cut; 2.8 s utterance: cut, "heard up to" logged |
+| **Filler while tools run** | if a tool has left the speaker silent for 1.5 s, one short phrase ("Still looking.") is spoken | three-page research call: filler spoken, answer followed |
+| **Stall watchdog** | 8 s without model output abandons the turn (25 s while a tool is running) | written, not triggered |
+| **Overload fallback** | a 529/503 retries once, then that turn runs on the fast Groq model, then back to your model | Anthropic 529 seen live; fallback path exercised by code review only |
+| **Model aliases** | `/model fast` (Groq gpt-oss-20b), `smart` (Haiku 4.5), `opus`, `sonnet`, `gemini`, `qwen` | |
+| **SQLite memory** (`agent/memory.py`) | every turn logged; notes; FTS5 full-text search = the cheap RAG; relevant hits attached to the user message as a `[memory ...]` block; tools remember / recall / search_history / forget; `/memory` command | new session answered "which device is my Yeti on?" from a note saved in the previous session, no tool call |
+
+`results/memory.sqlite` is the whole memory; delete it to start fresh. Swap `Memory.search_*` for an embedding search
+when the keyword RAG stops being enough.
+
+### Test order when you talk to it (from the review)
+
+1. Plain conversation, four turns, no tools. Pause mid-sentence on purpose: it should wait.
+2. Interrupt it mid-sentence, then say "go on".
+3. Say "mhm" and "yeah" while it talks: it should dip in volume and keep going.
+4. "What time is it" (tool), then something current (search), then "roll two dice" (MCP).
+5. `/help`, `/model fast`, `/voice af_bella`, `/search off`, `/memory notes`.
