@@ -1,0 +1,19 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+agent ready: ok
+initial button state (unmuted): ok
+click mutes talk.mic_muted: ok
+click updates button label/style: ok
+F2 unmutes talk.mic_muted: ok
+F2 restores button label/style: ok
+focus returns to the editor after clicking the button: ok
+done
+Exception in thread agent:
+Traceback (most recent call last):
+  File "C:\Python311\Lib\threading.py", line 1038, in _bootstrap_inner
+    self.run()
+  File "C:\Python311\Lib\threading.py", line 975, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 167, in _runner

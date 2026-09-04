@@ -287,6 +287,19 @@
     <tr><td>Anthropic 529 overloaded</td><td>seen once live; now one retry, then the turn runs on Groq</td></tr>
   </table></div>
 
+  <h2>The editor</h2>
+  <p>The bottom of the screen is now a real multi-line editor (Textual): paste a block of code or another model's output and it stays intact until you press Enter; Shift+Enter or Ctrl+J adds a line; presets like <code>/explain</code>, <code>/review</code> and <code>/next</code> apply to the last paste. Each message is its own block. Headless test: a seven-line paste explained correctly, <code>/review</code> on the last paste, Shift+Enter did not send.</p>
+
+  <h2>Mic mute + wake word</h2>
+  <p>A way to stop the agent listening without stopping it talking: a button in the corner of the screen, the F2 key from anywhere, or <code>/mic</code>. Muting never touches a reply already in progress, only future listening. A locally checked wake word — the agent's name by default — turns it back on; nothing else said while muted reaches the model, the log, or memory.</p>
+  <div class="tw"><table>
+    <tr><th>real-audio test step</th><th>result</th></tr>
+    <tr><td>mute, then an unrelated clip</td><td><span class="pill good">stayed muted</span> zero turns created</td></tr>
+    <tr><td>"Hey Yeti, are you there?" clip</td><td><span class="pill good">un-muted</span> real Parakeet transcript matched the wake word</td></tr>
+    <tr><td>unrelated clip again, now unmuted</td><td><span class="pill good">real turn</span> answered normally</td></tr>
+  </table></div>
+  <p class="caption">Kokoro-synthesized test clips through the real mic loop and real Parakeet, no mocks. A headless UI test also drove the actual button click and F2 key.</p>
+
   <h2>Recommendations</h2>
   <ul>
     <li><b>Budget:</b> about 50 ms of ASR per utterance, 150 ms per minute of speech, 3.6 GB of VRAM, in hybrid mode.</li>

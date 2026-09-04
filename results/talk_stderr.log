@@ -1,0 +1,131 @@
+Traceback (most recent call last):
+  File "D:\Downloads\voiceAgent\agent\tui_test.py", line 91, in <module>
+    asyncio.run(main())
+  File "C:\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\base_events.py", line 653, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\agent\tui_test.py", line 33, in main
+    a = talk.build_parser().parse_args(["--no-mic", "--no-play", "--no-search"])
+        ^^^^^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 769, in build_parser
+    run_app(ui, start, t.submit_text)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 308, in run_app
+    app.run()
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 2350, in run
+    return asyncio.run(run_app())
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 186, in run
+    raise RuntimeError(
+RuntimeError: asyncio.run() cannot be called from a running event loop
+Traceback (most recent call last):
+  File "D:\Downloads\voiceAgent\agent\tui_test.py", line 92, in <module>
+    asyncio.run(main())
+  File "C:\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\base_events.py", line 653, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\agent\tui_test.py", line 33, in main
+    a = talk.build_parser().parse_args(["--no-mic", "--no-play", "--no-search"])
+        ^^^^^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 769, in build_parser
+    run_app(ui, start, t.submit_text)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 308, in run_app
+    app.run()
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 2350, in run
+    return asyncio.run(run_app())
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 186, in run
+    raise RuntimeError(
+RuntimeError: asyncio.run() cannot be called from a running event loop
+Traceback (most recent call last):
+  File "D:\Downloads\voiceAgent\agent\tui_test.py", line 92, in <module>
+    asyncio.run(main())
+  File "C:\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\base_events.py", line 653, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\agent\tui_test.py", line 33, in main
+    a = talk.build_parser().parse_args(["--no-mic", "--no-play", "--no-search"])
+        ^^^^^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 769, in build_parser
+    run_app(ui, start, t.submit_text)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 308, in run_app
+    app.run()
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 2350, in run
+    return asyncio.run(run_app())
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 186, in run
+    raise RuntimeError(
+RuntimeError: asyncio.run() cannot be called from a running event loop
+╭───────────────────── Traceback (most recent call last) ──────────────────────
+│ D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\widget.py:4766 in    
+│ _on_focus                                                                    
+│                                                                              
+│   4763 │   │   │   self.mouse_hover = True                                   
+│   4764 │                                                                     
+│   4765 │   def _on_focus(self, event: events.Focus) -> None:                 
+│ ❱ 4766 │   │   self.has_focus = True                                         
+│   4767 │   │   self.refresh()                                                
+│   4768 │   │   if self.parent is not None:                                   
+│   4769 │   │   │   self.parent.post_message(events.DescendantFocus(self))    
+│                                                                              
+│ ╭────────────── locals ───────────────╮                                      
+│ │ event = Focus(from_app_focus=False) │                                      
+│ │  self = PromptArea(id='input')      │                                      
+│ ╰─────────────────────────────────────╯                                      
+│                                                                              
+│ D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\widgets\_text_area.p 
+│ y:861 in _watch_has_focus                                                    
+│                                                                              
+│    858 │   │   if focus:                                                     
+│    859 │   │   │   self._restart_blink()                                     
+│    860 │   │   │   self.app.cursor_position = self.cursor_screen_offset      
+│ ❱  861 │   │   │   self.history.checkpoint()                                 
+│    862 │   │   else:                                                         
+│    863 │   │   │   self._pause_blink(visible=False)                          
+│    864                                                                       
+│                                                                              
+│ ╭──────────── locals ────────────╮                                           
+│ │ focus = True                   │                                           
+│ │  self = PromptArea(id='input') │                                           
+│ ╰────────────────────────────────╯                                           
+╰──────────────────────────────────────────────────────────────────────────────
+AttributeError: 'collections.deque' object has no attribute 'checkpoint'
+Exception in thread agent:
+Traceback (most recent call last):
+  File "C:\Python311\Lib\threading.py", line 1038, in _bootstrap_inner
+    self.run()
+  File "C:\Python311\Lib\threading.py", line 975, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 152, in _runner
+    self.call_from_thread(self.add_block, "agent stopped · Ctrl+Q to exit", "warn")
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 1819, in call_from_thread
+    raise RuntimeError("App is not running")
+RuntimeError: App is not running
+Exception in thread agent:
+Traceback (most recent call last):
+  File "C:\Python311\Lib\threading.py", line 1038, in _bootstrap_inner
+    self.run()
+  File "C:\Python311\Lib\threading.py", line 975, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 167, in _runner
+    self.call_from_thread(self.add_block, "agent stopped · Ctrl+Q to exit", "warn")
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 1819, in call_from_thread
+    raise RuntimeError("App is not running")
+RuntimeError: App is not running

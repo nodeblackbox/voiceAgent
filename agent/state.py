@@ -86,6 +86,13 @@ class StateMachine:
             if self.state == S.INTERRUPTED:
                 self._set(S.USER_SPEAKING, "user_continues")
 
+    def force_listening(self, event: str = "forced") -> None:
+        """Abandon whatever the mic side was doing (e.g. mic muted mid-utterance) and go idle.
+        Never used on THINKING/SPEAKING — muting the mic must not cut the agent's own reply."""
+        with self.lock:
+            if self.state in (S.USER_SPEAKING, S.INTERRUPTED):
+                self._set(S.LISTENING, event)
+
     def abort(self) -> None:
         """INTERRUPTED -> LISTENING (a /stop command, not a user utterance)."""
         with self.lock:

@@ -192,6 +192,24 @@ One unexplained event: a single Groq turn took 108 s inside the agent loop while
 | note saved in one session, asked in the next | answered from the memory block with no tool call, 738 ms to first sentence |
 | Anthropic 529 overloaded | seen live once; now retried once, then the turn runs on Groq |
 
+## Terminal editor (Textual)
+
+Replaced the raw key reader with a Textual app: a multi-line editor that keeps pastes intact, Enter sends, Shift+Enter / Ctrl+J newline, history with Ctrl+arrows, and every message as its own block. Headless test: a seven-line code paste stayed intact and was explained ("This is a barge-in handler…"), `/review` applied to the last paste, a Shift+Enter newline did not send. Not yet run in a real terminal by a human.
+
+## Mic mute + wake word
+
+Requested after using the agent for a while: a way to stop it listening without stopping it talking, plus a spoken way back in. Built as a mute layer independent of the state machine — it never touches the agent's own reply, only future listening — with a Textual button, F2, `/mic`, and a locally-checked wake word (default: the agent's name).
+
+Real-audio test (`agent/mic_mute_sim_test.py`, Kokoro-synthesized clips through the real mic loop and real Parakeet, no mocks):
+
+| step | result |
+|---|---|
+| mute, then an unrelated clip | stayed muted, zero turns created |
+| "Hey Yeti, are you there?" clip | un-muted, real Parakeet transcript matched the wake word |
+| unrelated clip again, now unmuted | became a real turn, answered normally |
+
+Headless UI test (`agent/tui_mic_test.py`): button click mutes and relabels itself red; F2 un-mutes and restores it; focus returns to the editor after a click. One bug found by the button test and fixed: Textual's `Content` label object doesn't support Python's `in` operator the way a plain string does — the button itself was correct, the first version of the test assertion was not.
+
 ## Recommendations
 
 - Use hybrid mode. Budget ~50 ms ASR per utterance, ~150 ms for a minute of speech.

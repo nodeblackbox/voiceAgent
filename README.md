@@ -191,3 +191,48 @@ when the keyword RAG stops being enough.
 3. Say "mhm" and "yeah" while it talks: it should dip in volume and keep going.
 4. "What time is it" (tool), then something current (search), then "roll two dice" (MCP).
 5. `/help`, `/model fast`, `/voice af_bella`, `/search off`, `/memory notes`.
+
+## The screen: Textual UI with a real editor (`agent/tui.py`)
+
+`agent/talk.py` now opens a Textual app by default on a terminal (`--plain` for the line log, `--no-tui` for the old
+Rich screen). Conversation blocks scroll above; a multi-line editor sits at the bottom.
+
+| key | action |
+|---|---|
+| Enter | send (inside an unclosed ``` fence it inserts a newline instead) |
+| Shift+Enter, Ctrl+J, Alt+Enter | newline |
+| Ctrl+↑ / Ctrl+↓ | previous / next thing you sent |
+| Ctrl+L | clear the editor |
+| Ctrl+Q / Ctrl+C | quit |
+
+Paste anything: bracketed paste keeps every line and nothing is sent until Enter. A paste (multi-line or > 400 chars)
+becomes a purple "pasted N lines" block; the model gets the full text fenced and is asked what it is. Then use presets
+on it, alone or with the text under the command:
+
+`/explain` · `/review` · `/next` · `/summarize` · `/fix` · `/why` (optionally followed by extra words)
+
+Everything else typed is a normal turn; slash commands work as before. Replies are spoken as well as shown.
+`--no-mic` runs it as a typed chat that still talks back. The headless test `agent/tui_test.py` pastes a snippet,
+runs `/review`, and checks Shift+Enter; it passes.
+
+## Mic mute (button, F2, or "/mic") + wake word
+
+Stops the mic from turning into turns — nothing you say reaches the model, the log, or memory while muted.
+It does not touch the agent's own voice: if it's mid-reply when you mute, the reply finishes normally, only
+future listening stops. Un-mute with the button (top right of the Textual screen), the F2 key from anywhere,
+`/mic on`, or by saying the wake word — by default the agent's name, and "hey <name>" (e.g. "Yeti" / "hey Yeti"),
+override with `--wake-word`.
+
+Honest limit: a spoken wake word can't work with literally zero listening — something has to keep checking for
+that one phrase. What actually stops while muted is everything downstream: each utterance is transcribed locally,
+checked only for the wake word, and thrown away unheard if it doesn't match. Nothing is sent to the model, logged,
+or written to memory unless you say the wake word.
+
+```powershell
+.venv\Scripts\python.exe agent	alk.py --wake-word lucy "hey lucy"    # custom wake phrase
+```
+
+Tests: `agent/tui_mic_test.py` drives the real button click and F2 key in a headless Textual session.
+`agent/mic_mute_sim_test.py` is end-to-end with real audio (two clips synthesized by Kokoro) through the real
+mic loop and real Parakeet: mutes, confirms an unrelated clip stays muted and creates no turn, confirms a
+"Hey Yeti" clip un-mutes it, then confirms a normal utterance becomes a real answered turn afterward.

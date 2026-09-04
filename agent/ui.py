@@ -34,6 +34,7 @@ class TerminalUI:
         self.console = Console(force_terminal=not plain, legacy_windows=False)
         self.model, self.voice = model, voice
         self.state = "listening"
+        self.mic_muted = False
         self.partial = ""
         self.entries: deque[Text] = deque(maxlen=max_lines)
         self.current: Text | None = None    # the assistant line being streamed
@@ -168,13 +169,18 @@ class TerminalUI:
         self.input_buf = buf
         self.refresh()
 
+    def set_mic(self, muted: bool):
+        self.mic_muted = muted
+        self.refresh()
+
     # ---------------------------------------------------------------- render
     def render(self):
         head = Table.grid(expand=True)
         head.add_column(ratio=1)
         head.add_column(justify="right")
         st = Text(f" {self.state.upper()} ", style=STATE_STYLE.get(self.state, "bold"))
-        left = Text.assemble(st, "  ", (self.model, "bold"), "  ", (f"voice {self.voice}", "dim"))
+        mic = Text(" 🔇 MIC MUTED  (/mic on) ", style="bold white on red") if self.mic_muted else Text("")
+        left = Text.assemble(mic, st, "  ", (self.model, "bold"), "  ", (f"voice {self.voice}", "dim"))
         right = Text("  ".join(f"{k} {v}" for k, v in self.badges.items()), style="magenta")
         head.add_row(left, right)
 

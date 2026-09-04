@@ -1,0 +1,15 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+ready after 16s, notes: ['ready · Parakeet hybrid · Kokoro af_heart (550 MiB']
+paste turn:
+/review preset on last paste:
+plain question with shift+enter newline:
+done
+ ok
+ ok
+ ok
+  agent block: This is a method that handles interrupting the assistant mid-response. When a barge-in happens, it stops what's playing,
+  agent block: The big problem: you're calling `resume_user()` before the UI has actually finished notifying about the interrupt. If `u
+  agent block: State machine.

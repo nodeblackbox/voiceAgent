@@ -1,0 +1,27 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+[09/04/26 01:45:46] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, 
+search_history, forget, calculate, convert_units, roll_dice · mic mute: 
+button/F2/"yeti" · type /help
+     mic muted — say "yeti", press the button, or hit F2 to resume
+[  21.98s] listening → user speaking (vad_on)
+[  21.98s] user speaking → thinking (vad_off)
+#1 you  hey nasan can you hear me
+     memory: 4 hint(s) attached
+     model error: model stalled: no output for 8s
+[  30.22s] thinking → speaking (first_audio)
+[  34.59s] speaking → listening (playback_done)
+#1 af_heart  
+     asr -  llm→sentence -  kokoro 214ms  end→audio 8247ms
+     usage: /mic [on|off|toggle]
+     session: 1 turns, 0 interrupted
+     speech end → first audio   p50  8247 ms   p95  8247 ms
+     Kokoro first sentence      p50   214 ms   p95   214 ms
+     echo gate suppressed 0 chunks · backchannels ignored 0 · smart-turn checks 
+0 (p50 nan ms) · log D:\Downloads\voiceAgent\results\talk_20260904_014524.jsonl

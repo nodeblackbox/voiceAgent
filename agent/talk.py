@@ -11,6 +11,12 @@ Usage
     python agent/talk.py --sim audio/handy-1787878656.wav --sim-bargein audio/handy-1787881187.wav
         (simulated mic: first wav is an utterance; second is injected 1.2 s after the agent starts talking)
 Ctrl+C to stop. Every turn goes to results/talk_<timestamp>.jsonl.
+
+Mic mute: the button in the Textual UI, F2, or "/mic" stops the mic from turning into turns — nothing
+you say reaches the model, the log, or memory while muted. It does not stop the agent's own voice or
+touch anything else. Say the wake word (the agent's name by default, e.g. "Yeti" or "hey Yeti") to
+un-mute; that one phrase is still checked locally so it can hear you say it — everything else is dropped
+unheard.
 """
 from __future__ import annotations
 
@@ -18,6 +24,7 @@ import argparse
 import collections
 import json
 import queue
+import re
 import sys
 import threading
 import time
@@ -91,9 +98,10 @@ FILLERS = ["Still looking.", "One sec.", "Almost there.", "Bear with me."]
 
 
 class Talk:
-    def __init__(self, a: argparse.Namespace):
+    def __init__(self, a: argparse.Namespace, ui=None):
         self.a = a
-        self.ui = TerminalUI(model=a.model, voice=a.voice, plain=a.plain)
+        self.ui = ui or TerminalUI(model=a.model, voice=a.voice, plain=a.plain)
+        self.last_paste: str | None = None
         self.sm = StateMachine(on_change=lambda old, new, ev: self.ui.set_state(new.value, f"{old.value} → {new.value} ({ev})"))
         self.echo = EchoGate(corr_threshold=a.echo_corr)
         self.log_path = RESULTS_DIR / f"talk_{datetime.now():%Y%m%d_%H%M%S}.jsonl"
@@ -111,12 +119,22 @@ class Talk:
         self.filler_samples = 0
         self.filler_i = 0
         self.backchannels = 0
+        # mic mute: stops turning your speech into turns; agent's own voice and everything else keeps working
+        self.mic_muted = False
+        self._need_reset = False    # tells the mic loop to drop any half-captured utterance on the next chunk
+        self._wake_busy = threading.Event()
+        self._wake_speaking = False
+        self._wake_utt: list[np.ndarray] = []
+        self._wake_t_on = self._wake_t_last = 0.0
+        self.vad = None             # set once run() creates the Silero instance; reset_states() on toggle
+        self.wake_words = [w.lower() for w in (a.wake_word or [])] or \
+            [a.agent_name.lower(), f"hey {a.agent_name.lower()}"]
 
     # ---------------------------------------------------------------- loading
     def load(self):
         a = self.a
         self.ui.set_status("loading Parakeet…")
-        if a.say is None:
+        if a.say is None and not a.no_mic:
             self.asr, _, _ = load_parakeet("hybrid")
             self.asr.recognize(np.zeros(SR, dtype=np.float32))
             assert_cuda_still_active(self.asr, "hybrid")
@@ -140,7 +158,8 @@ class Talk:
             self.ui.note(f"mcp: {msg}", "yellow dim")
         self.ui.set_status("")
         self.ui.note(f"ready · Parakeet hybrid · Kokoro {a.voice} ({self.tts.vram_mib():.0f} MiB) · {a.model} · "
-                     f"tools: {', '.join(n for n, _ in self.brain.tool_sources())} · type /help", "green dim")
+                     f"tools: {', '.join(n for n, _ in self.brain.tool_sources())} · "
+                     f"mic mute: button/F2/\"{self.wake_words[0]}\" · type /help", "green dim")
 
     def _search_on(self) -> str:
         sys.path.insert(0, str(ROOT / "search"))
@@ -160,7 +179,8 @@ class Talk:
 
         @r.add("help", "help", "list commands")
         def _help(args):
-            return r.help_text()
+            presets = "\n".join(f"/{k:<10} {v[:70]}…" for k, v in self.PRESETS.items())
+            return r.help_text() + "\n\npresets (after a paste, or with the text under the command):\n" + presets
 
         @r.add("model", "model <spec|fast|smart|opus|sonnet|gemini|qwen>", "switch the model (fast = Groq gpt-oss-20b, smart = Haiku 4.5)")
         def _model(args):
@@ -218,12 +238,7 @@ class Talk:
             text = " ".join(args).strip()
             if not text:
                 return "say what?"
-            if self.sm.agent_busy:
-                self.barge_in()
-                self.sm.abort()
-            self.sm.vad_on()
-            self.sm.vad_off()
-            self.turn_q.put((None, time.perf_counter(), text))
+            self._say(text)
             return None
 
         @r.add("stop", "stop", "interrupt the current reply")
@@ -244,6 +259,14 @@ class Talk:
             self.muted = False
             return "unmuted"
 
+        @r.add("mic", "mic [on|off|toggle]", "mute the microphone — stops it listening to you; wake word or the button/F2 turns it back on")
+        def _mic(args):
+            choice = args[0] if args else "toggle"
+            if choice not in ("on", "off", "toggle"):
+                return "usage: /mic [on|off|toggle]"
+            self.toggle_mic(True if choice == "off" else False if choice == "on" else None)
+            return None  # toggle_mic already posts its own note
+
         @r.add("history", "history [n]", "show the last n exchanges")
         def _history(args):
             n = int(args[0]) if args else 4
@@ -260,9 +283,10 @@ class Talk:
             lt = (f"last turn: asr {last.asr_ms and round(last.asr_ms)} ms, llm first sentence "
                   f"{last.llm_first_sentence_ms and round(last.llm_first_sentence_ms)} ms, end→audio "
                   f"{last.speech_end_to_audio_ms and round(last.speech_end_to_audio_ms)} ms") if last else "no turns yet"
-            return (f"state {self.sm.state.value} · model {self.brain.model_spec} · voice {self.tts.voice} · "
-                    f"search {'on' if self.brain.search_on else 'off'} · mcp {', '.join(self.brain.mcp_tools) or 'none'} · "
-                    f"{'muted' if self.muted else 'sound on'} · echo gate suppressed {self.echo.suppressed}\n  {lt}")
+            return (f"state {self.sm.state.value} · mic {'MUTED' if self.mic_muted else 'on'} · model {self.brain.model_spec} · "
+                    f"voice {self.tts.voice} · search {'on' if self.brain.search_on else 'off'} · "
+                    f"mcp {', '.join(self.brain.mcp_tools) or 'none'} · {'muted' if self.muted else 'sound on'} · "
+                    f"echo gate suppressed {self.echo.suppressed}\n  {lt}")
 
         @r.add("memory", "memory [search <q> | notes | forget <id> | stats]", "the SQLite memory (cheap RAG)")
         def _memory(args):
@@ -286,11 +310,65 @@ class Talk:
 
         return r
 
+    PRESETS = {
+        "explain": "Explain what this is and what it does, in plain spoken language. Lead with the one-sentence version, then the two or three things that matter most.",
+        "review": "Review this. Tell me the most important problem first, then anything else worth fixing. Be direct.",
+        "next": "Given this, what should I do next? Give me the single best next step and why, then a fallback.",
+        "summarize": "Summarize this in a few spoken sentences.",
+        "fix": "Something is wrong with this. Find the most likely cause and tell me the fix.",
+        "why": "Why is this happening? Walk me through the cause.",
+    }
+
+    def submit_text(self, line: str) -> None:
+        """Everything typed or pasted comes through here: slash commands, presets, pastes, plain turns."""
+        raw = line.rstrip("\n")
+        stripped = raw.strip()
+        if not stripped:
+            return
+        first, _, rest = stripped.partition("\n")
+        head = first.strip()
+        # preset on the first line (optionally with extra words), body = paste or the last paste
+        if head.startswith("/") and head[1:].split(" ")[0] in self.PRESETS:
+            name, _, extra = head[1:].partition(" ")
+            body = rest.strip() or (self.last_paste or "")
+            instruction = self.PRESETS[name] + (f" {extra.strip()}" if extra.strip() else "")
+            if not body:
+                self.ui.note(f"/{name}: paste something first (or put it under the command)", "yellow")
+                return
+            self._paste_turn(instruction, body)
+            return
+        if head.startswith("/"):
+            out = self.router.dispatch(head)
+            if out:
+                for ln in str(out).split("\n"):
+                    self.ui.note(ln, "bold" if ln.startswith("/") else "white")
+            return
+        if "\n" in stripped or len(stripped) > 400:
+            # a paste: keep it as context and ask what it is
+            self._paste_turn("I just pasted this. Tell me briefly what it is and what it does, then keep it in mind for follow-up questions.", stripped)
+            return
+        self._say(stripped)
+
+    def _say(self, text: str, model_text: str | None = None) -> None:
+        if self.sm.agent_busy:
+            self.barge_in()
+            self.sm.abort()
+        self.sm.vad_on()
+        self.sm.vad_off()
+        self.turn_q.put((None, time.perf_counter(), text, model_text))
+
+    def _paste_turn(self, instruction: str, body: str) -> None:
+        self.last_paste = body
+        n_lines = body.count("\n") + 1
+        self.turn_n_preview = self.turn_n + 1
+        first_line = body.strip().split("\n")[0][:100]
+        if hasattr(self.ui, "paste"):
+            self.ui.paste(self.turn_n + 1, first_line, n_lines, instruction)
+        model_text = f"{instruction}\n\n```\n{body}\n```"
+        self._say(f"{instruction} [pasted {n_lines} lines: {first_line}]", model_text)
+
     def on_command_line(self, line: str) -> None:
-        out = self.router.dispatch(line)
-        if out:
-            for ln in str(out).split("\n"):
-                self.ui.note(ln, "bold" if ln.startswith("/") else "white")
+        self.submit_text(line)
 
     # ---------------------------------------------------------------- one turn (runs in the worker thread)
     def respond(self, turn: Turn):
@@ -357,7 +435,8 @@ class Talk:
         threading.Thread(target=watch_audio, daemon=True).start()
 
         ctx = self.mem.context_for(turn.user_text)
-        model_text = turn.user_text + ("\n" + ctx if ctx else "")
+        base = turn.user_text_for_model or turn.user_text
+        model_text = base + ("\n" + ctx if ctx else "")
         if ctx:
             self.ui.note(f"memory: {ctx.count(chr(10)) - 1} hint(s) attached", "dim")
         r = self.brain.stream_turn(model_text, on_text=on_text, on_tool_call=on_tool_call,
@@ -424,6 +503,70 @@ class Talk:
             self.ui.interrupted(spoken, unspoken)
             self.sm.resume_user()
 
+    # ---------------------------------------------------------------- mic mute + wake word
+    def toggle_mic(self, muted: bool | None = None) -> None:
+        """muted=True mutes (stop listening), False unmutes, None flips it. Safe from any thread."""
+        new_state = (not self.mic_muted) if muted is None else muted
+        if new_state == self.mic_muted:
+            return
+        self.mic_muted = new_state
+        self._need_reset = True
+        self._wake_reset()
+        if self.vad is not None:
+            self.vad.reset_states()
+        if new_state:
+            self.sm.force_listening("mic_muted")  # never touches THINKING/SPEAKING — the reply keeps going
+        if hasattr(self.ui, "set_mic"):
+            self.ui.set_mic(new_state)
+        self.ui.note(f"mic muted — say \"{self.wake_words[0]}\", press the button, or hit F2 to resume" if new_state
+                     else "mic on — listening again", "yellow" if new_state else "green")
+
+    def _wake_reset(self) -> None:
+        self._wake_speaking = False
+        self._wake_utt = []
+
+    def _wake_step(self, chunk: np.ndarray, vad, now: float) -> None:
+        """Runs instead of the normal turn logic while muted: segments speech with a fixed hangover and
+        checks each utterance for the wake word. Nothing here reaches the model, the log, or memory."""
+        a = self.a
+        p = vad(torch.from_numpy(chunk), SR).item()
+        self.ui.set_vad(p, 0.0)
+        if not self._wake_speaking:
+            if p >= a.threshold:
+                self._wake_speaking = True
+                self._wake_t_on = self._wake_t_last = now
+                self._wake_utt = [chunk]
+            return
+        self._wake_utt.append(chunk)
+        if p >= a.threshold:
+            self._wake_t_last = now
+        if (now - self._wake_t_last) * 1e3 < a.wake_hangover:
+            return
+        self._wake_speaking = False
+        audio = np.concatenate(self._wake_utt)
+        self._wake_utt = []
+        if (self._wake_t_last - self._wake_t_on) * 1e3 < a.min_speech or self._wake_busy.is_set():
+            return
+        self._wake_busy.set()
+        threading.Thread(target=self._wake_check, args=(audio,), daemon=True).start()
+
+    def _wake_check(self, audio: np.ndarray) -> None:
+        try:
+            with self.asr_lock:
+                text = self.asr.recognize(audio).strip()
+            norm = " ".join(re.sub(r"[^a-z0-9 ]", " ", text.lower()).split())
+            if any(w in norm for w in self.wake_words):
+                self.toggle_mic(False)
+                if not self.muted:
+                    try:
+                        self.sink.push(self.tts.synth("Yeah?", self.a.speed))
+                    except Exception:  # noqa: BLE001
+                        pass
+            elif self.a.wake_debug:
+                self.ui.note(f"(muted, heard: \"{text}\" — not the wake word)" if text else "(muted, heard silence)", "dim")
+        finally:
+            self._wake_busy.clear()
+
     # ---------------------------------------------------------------- typed input (alongside the mic)
     def read_typed(self):
         """Read lines from stdin and inject them as turns, same path as --say. Runs next to the mic
@@ -451,7 +594,8 @@ class Talk:
             item = self.turn_q.get()
             if item is None:
                 return
-            audio, t_end, text = item
+            audio, t_end, text = item[0], item[1], item[2]
+            model_text = item[3] if len(item) > 3 else None
             if text is None:
                 t0 = time.perf_counter()
                 with self.asr_lock:
@@ -465,7 +609,9 @@ class Talk:
                 continue
             self.turn_n += 1
             turn = Turn(self.turn_n, user_text=text, t_speech_end=t_end, asr_ms=asr_ms)
-            self.ui.user(turn.n, text, asr_ms)
+            turn.user_text_for_model = model_text or ""
+            if not model_text:
+                self.ui.user(turn.n, text, asr_ms)
             self.respond(turn)
 
     # ---------------------------------------------------------------- mic loop
@@ -475,6 +621,7 @@ class Talk:
 
         a = self.a
         vad = load_silero_vad()
+        self.vad = vad
         threading.Thread(target=self.worker, daemon=True).start()
         preroll = collections.deque(maxlen=int(a.preroll * SR / CHUNK) + 1)
         utt: list[np.ndarray] = []
@@ -496,7 +643,7 @@ class Talk:
                 partial_busy.clear()
 
         keys = None
-        if sys.stdin.isatty() and not a.sim:
+        if sys.stdin.isatty() and not a.sim and not getattr(a, "tui", False):
             keys = LineReader(on_line=self.on_command_line, on_change=self.ui.set_input)
             keys.start()
         ducked = False
@@ -504,6 +651,16 @@ class Talk:
             if self.quit.is_set():
                 break
             now = time.perf_counter()
+            if self._need_reset:
+                self._need_reset = False
+                hot = 0
+                ducked = False
+                self.sink.gain = 1.0
+                preroll.clear()
+                utt = []
+            if self.mic_muted:
+                self._wake_step(chunk, vad, now)
+                continue
             p = vad(torch.from_numpy(chunk), SR).item()
             echo = self.echo.is_echo(chunk) if self.sm.agent_busy else False
             self.ui.set_vad(p, self.echo.last_corr if self.sm.agent_busy else 0.0)
@@ -580,6 +737,12 @@ class Talk:
             time.sleep(0.05)
 
     # ---------------------------------------------------------------- sources
+    def idle_chunks(self):
+        """No microphone: feed silence so the loop (and typed turns) still run."""
+        while not self.quit.is_set():
+            time.sleep(0.032)
+            yield np.zeros(CHUNK, dtype=np.float32)
+
     def mic_chunks(self):
         import sounddevice as sd
 
@@ -648,7 +811,7 @@ class Talk:
                      f"smart-turn checks {self.ep.checks} (p50 {pct(self.ep.cost_ms, 50):.0f} ms) · log {self.log_path}")
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="anthropic:claude-haiku-4-5")
     ap.add_argument("--agent-name", default="Yeti")
@@ -681,12 +844,47 @@ def main():
     ap.add_argument("--typed", action=argparse.BooleanOptionalAction, default=True,
                      help="also read lines from stdin and send them as turns, alongside the mic")
     ap.add_argument("--plain", action="store_true", help="no live screen; print one line per event (logs, CI)")
+    ap.add_argument("--tui", action=argparse.BooleanOptionalAction, default=None, help="Textual screen with the multi-line editor (default on a terminal)")
+    ap.add_argument("--no-mic", action="store_true", help="text only: no microphone, no Parakeet; replies are still spoken")
     ap.add_argument("--search", action=argparse.BooleanOptionalAction, default=True, help="web tools on at start (starts SearXNG)")
+    ap.add_argument("--wake-word", nargs="*", default=None,
+                     help="phrase(s) that un-mute the mic while muted (default: the agent's name, and 'hey <name>')")
+    ap.add_argument("--wake-hangover", type=int, default=500, help="silence (ms) that closes an utterance while checking for the wake word")
+    ap.add_argument("--wake-debug", action="store_true", help="show everything heard while muted, not just wake-word hits")
     ap.add_argument("--say", nargs="*", default=None, help="text turns, no mic/ASR")
     ap.add_argument("--sim", default=None, help="wav to replay as the mic")
     ap.add_argument("--sim-bargein", default=None, help="wav injected while the agent speaks")
     ap.add_argument("--sim-bargein-after", type=float, default=1.2)
-    a = ap.parse_args()
+    return ap
+
+
+def main():
+    a = build_parser().parse_args()
+
+    if a.tui is None:
+        a.tui = sys.stdin.isatty() and not a.plain and a.say is None and not a.sim
+    if a.tui:
+        from tui import TextualUI, run_app
+
+        ui = TextualUI(model=a.model, voice=a.voice)
+        t = Talk(a, ui=ui)
+        # Textual owns the terminal: keep library chatter (torch warnings, ORT) out of the screen
+        sys.stderr = open(RESULTS_DIR / "talk_stderr.log", "a", encoding="utf-8")
+
+        def start():
+            t.load()
+            t.run(t.idle_chunks() if a.no_mic else t.mic_chunks())
+
+        try:
+            run_app(ui, start, t.submit_text, mic_fn=t.toggle_mic)
+        finally:
+            t.quit.set()
+            try:
+                t.sink.close()
+            except Exception:  # noqa: BLE001
+                pass
+            t.summary()
+        return
 
     t = Talk(a)
     with t.ui:
