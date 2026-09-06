@@ -300,6 +300,18 @@
   </table></div>
   <p class="caption">Kokoro-synthesized test clips through the real mic loop and real Parakeet, no mocks. A headless UI test also drove the actual button click and F2 key.</p>
 
+  <h2>Live-session fixes: barge-in, hedging, clutter</h2>
+  <p>Found by actually talking to the agent for an extended session, not by inspection. Each is a real bug in the counting or thresholding logic, fixed and verified with fifteen deterministic checks run against the real code.</p>
+  <div class="tw"><table>
+    <tr><th>bug</th><th>root cause</th><th>fix</th></tr>
+    <tr><td>real sustained speech often failed to interrupt the agent</td><td>barge-in credit reset to zero on any single below-threshold chunk</td><td>leaky-bucket accumulator: a miss costs one unit, not the whole count</td></tr>
+    <tr><td>"backchannel ignored" spammed 5× with audible flicker</td><td>duck/undock fired on the first stray miss, not sustained silence</td><td>release only after ~190 ms of real silence</td></tr>
+    <tr><td>Smart Turn cut mid-hedge on "um", "so", "yeah yeah so..."</td><td>any score ≥ 0.5 ended the turn</td><td>three tiers: below 0.7 never, 0.7–0.9 held on a trailing filler word, ≥ 0.9 always ends</td></tr>
+    <tr><td>transcript cluttered with routine telemetry</td><td>always-on notes</td><td>gated behind <code>--verbose</code> / <code>/verbose</code>, default off</td></tr>
+    <tr><td>empty "heard up to" block when interrupted before speaking</td><td>quoted an empty string</td><td>renders "interrupted before it said anything"</td></tr>
+  </table></div>
+  <p class="caption">Verified with scripted VAD/score sequences run through the real <code>Talk.run()</code> and <code>Endpointer.update()</code> — arithmetic bugs, tested at the arithmetic level, in under a second rather than another full audio round trip.</p>
+
   <h2>Recommendations</h2>
   <ul>
     <li><b>Budget:</b> about 50 ms of ASR per utterance, 150 ms per minute of speech, 3.6 GB of VRAM, in hybrid mode.</li>

@@ -236,3 +236,32 @@ Tests: `agent/tui_mic_test.py` drives the real button click and F2 key in a head
 `agent/mic_mute_sim_test.py` is end-to-end with real audio (two clips synthesized by Kokoro) through the real
 mic loop and real Parakeet: mutes, confirms an unrelated clip stays muted and creates no turn, confirms a
 "Hey Yeti" clip un-mutes it, then confirms a normal utterance becomes a real answered turn afterward.
+
+## Fixes from the 2026-09-06 live session: barge-in, hedging, clutter
+
+Three real bugs found by actually using the agent, each fixed and verified with `agent/fixes_test.py`
+(fast deterministic tests against the real code, not the audio pipeline — these are arithmetic and
+string-logic bugs, so scripted VAD/score sequences through the real `Talk.run()` and `Endpointer.update()`
+are the right level to test at, and they run in about a second instead of minutes).
+
+**1. Barge-in silently failed on real sustained speech.** `hot` (the barge-in accumulator) reset fully to
+zero on any single 32 ms chunk where the VAD score dipped below threshold — and natural speech is never
+perfectly above threshold for 320 ms straight (plosives, sibilants, brief consonant dips). That produced
+two symptoms at once: real sustained speech often never reached the cut threshold ("it just did not want
+to shut up"), and the duck/un-duck logic flickered and logged "backchannel ignored" repeatedly during one
+continuous utterance (the transcript shows this firing five times in a row). Fixed with a leaky-bucket
+accumulator (`--bargein-decay`, default 1: a miss costs one unit, not the whole count) and a release-based
+backchannel classifier (`--bargein-release-chunks`, default 6 ≈ 190 ms of real silence before a ducked
+burst is called "finished" and logged, instead of on the very first stray miss).
+
+**2. Smart Turn cut people off mid-hedge.** Scores of 0.56–0.66 — weak confidence — were ending turns on
+"um", "so", "yeah yeah so...". Endpointer now has three tiers: below `--turn-threshold` (0.7) never ends;
+0.7–0.9 ends unless the last live-caption word is a filler/conjunction ("um", "so", "and", "that's", ...),
+in which case it holds; at or above `--turn-high-threshold` (0.9) it ends regardless, trusting a confident
+model over the lexical guard.
+
+**3. Debug telemetry was cluttering the transcript.** "memory: N hint(s) attached", "turn end: ...",
+"backchannel ignored", "(nothing recognised)" — all printed inline with the actual conversation. These are
+now gated behind `--verbose` / `/verbose on|off` (default off); the conversation view shows only what was
+said. Also fixed: interrupting the agent before it had said anything rendered an empty `"heard up to: "..."`
+block — it now says "interrupted before it said anything".

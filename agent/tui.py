@@ -329,8 +329,11 @@ class TextualUI:
                 self.app._current.update(self.app._current_text)
                 self.app._current.border_subtitle = "✂ interrupted"
                 self.app._current = None
-            t = Text.assemble(("heard up to: ", "dim"), (f"“…{spoken[-70:]}”", ""),
-                              (f"   dropped {len(unspoken.split())} words" if unspoken else "", "dim"))
+            if spoken.strip():
+                t = Text.assemble(("heard up to: ", "dim"), (f"“…{spoken[-70:]}”", ""),
+                                  (f"   dropped {len(unspoken.split())} words" if unspoken else "", "dim"))
+            else:
+                t = Text("interrupted before it said anything", style="dim")
             self.app.add_block(t, "cut")
         self._call(go)
 

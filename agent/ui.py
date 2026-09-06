@@ -138,10 +138,13 @@ class TerminalUI:
             self._line(cur)
         with self.lock:
             t = Text()
-            t.append("     heard up to: ", style="red dim")
-            t.append(f"“…{spoken[-60:]}”", style="red")
-            if unspoken:
-                t.append(f"   dropped {len(unspoken.split())} words", style="red dim")
+            if spoken.strip():
+                t.append("     heard up to: ", style="red dim")
+                t.append(f"“…{spoken[-60:]}”", style="red")
+                if unspoken:
+                    t.append(f"   dropped {len(unspoken.split())} words", style="red dim")
+            else:
+                t.append("     interrupted before it said anything", style="red dim")
             self.entries.append(t)
         self._line(Text("     ✂ interrupted", style="bold red"))
         self._line(t)

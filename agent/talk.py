@@ -129,6 +129,8 @@ class Talk:
         self.vad = None             # set once run() creates the Silero instance; reset_states() on toggle
         self.wake_words = [w.lower() for w in (a.wake_word or [])] or \
             [a.agent_name.lower(), f"hey {a.agent_name.lower()}"]
+        self.verbose = a.verbose    # routine per-turn telemetry (memory hints, turn-end reason, backchannels)
+        self._last_partial_text = ""  # most recent live caption, used by the Smart Turn filler-word guard
 
     # ---------------------------------------------------------------- loading
     def load(self):
@@ -139,7 +141,8 @@ class Talk:
             self.asr.recognize(np.zeros(SR, dtype=np.float32))
             assert_cuda_still_active(self.asr, "hybrid")
         self.ui.set_status("loading Smart Turn…")
-        self.ep = Endpointer(min_silence_ms=a.min_silence, max_silence_ms=a.max_silence, use_model=a.smart_turn)
+        self.ep = Endpointer(min_silence_ms=a.min_silence, max_silence_ms=a.max_silence, use_model=a.smart_turn,
+                             threshold=a.turn_threshold, high_threshold=a.turn_high_threshold)
         self.ui.set_status("loading Kokoro…")
         self.tts = KokoroTTS(voice=a.voice)
         self.sink = NullSink(on_play=self.echo.push_played) if a.no_play else \
@@ -258,6 +261,13 @@ class Talk:
         def _unmute(args):
             self.muted = False
             return "unmuted"
+
+        @r.add("verbose", "verbose [on|off]", "show routine per-turn telemetry (memory hints, turn-end reason, backchannels) inline")
+        def _verbose(args):
+            if not args:
+                return f"verbose is {'on' if self.verbose else 'off'}"
+            self.verbose = args[0] == "on"
+            return f"verbose {'on' if self.verbose else 'off'}"
 
         @r.add("mic", "mic [on|off|toggle]", "mute the microphone — stops it listening to you; wake word or the button/F2 turns it back on")
         def _mic(args):
@@ -411,7 +421,8 @@ class Talk:
                         if tool_pending["n"] == tool_n and not self.cancel.is_set():
                             self.filler_samples += len(audio)
                             sink.push(audio)
-                            self.ui.note(f"filler: {phrase}", "dim")
+                            if self.verbose:
+                                self.ui.note(f"filler: {phrase}", "dim")
                         return
                 time.sleep(0.1)
 
@@ -437,7 +448,7 @@ class Talk:
         ctx = self.mem.context_for(turn.user_text)
         base = turn.user_text_for_model or turn.user_text
         model_text = base + ("\n" + ctx if ctx else "")
-        if ctx:
+        if ctx and self.verbose:
             self.ui.note(f"memory: {ctx.count(chr(10)) - 1} hint(s) attached", "dim")
         r = self.brain.stream_turn(model_text, on_text=on_text, on_tool_call=on_tool_call,
                                    on_tool_result=on_tool_result, cancel=self.cancel)
@@ -604,7 +615,8 @@ class Talk:
             else:
                 asr_ms = None
             if not text:
-                self.ui.note("(nothing recognised)")
+                if self.verbose:
+                    self.ui.note("(nothing recognised)")
                 self.sm.done()
                 continue
             self.turn_n += 1
@@ -626,7 +638,8 @@ class Talk:
         preroll = collections.deque(maxlen=int(a.preroll * SR / CHUNK) + 1)
         utt: list[np.ndarray] = []
         t_on = t_last = 0.0
-        hot = 0
+        hot = 0        # leaky accumulator of net sustained-speech credit while the agent may be barged in on
+        miss_run = 0   # consecutive silent/below-threshold chunks since the last hit, once ducked
         last_partial_len = 0
         partial_busy = threading.Event()
 
@@ -637,6 +650,7 @@ class Talk:
                         text = self.asr.recognize(audio[-SR * 15:]).strip()
                     finally:
                         self.asr_lock.release()
+                    self._last_partial_text = text  # feeds the Smart Turn filler-word guard even after this clears
                     if self.sm.state in (S.USER_SPEAKING, S.INTERRUPTED):
                         self.ui.set_partial(text)
             finally:
@@ -654,6 +668,7 @@ class Talk:
             if self._need_reset:
                 self._need_reset = False
                 hot = 0
+                miss_run = 0
                 ducked = False
                 self.sink.gain = 1.0
                 preroll.clear()
@@ -670,7 +685,8 @@ class Talk:
                 preroll.append(chunk)
                 thr = a.bargein_threshold if st != S.LISTENING else a.threshold
                 if p >= thr and not echo:
-                    hot += 1
+                    miss_run = 0
+                    hot = min(hot + 1, a.bargein_chunks + a.duck_chunks)  # cap: no unbounded credit build-up
                     if st == S.LISTENING:
                         self.sm.vad_on()
                         self.ep.start_utterance()
@@ -679,13 +695,18 @@ class Talk:
                         last_partial_len = 0
                         hot = 0
                     else:
-                        # two-stage barge-in: duck first (a backchannel "mhm" passes), cut only if speech is sustained
+                        # two-stage barge-in: duck first (a backchannel "mhm" passes), cut only once sustained
+                        # speech has accumulated enough NET credit — a lone missed 32 ms frame mid-sentence
+                        # (a natural VAD dip) only costs --bargein-decay, it does not wipe the count to zero,
+                        # so real continuous speech reliably reaches the cut threshold even with flutter.
                         if hot >= a.duck_chunks and not ducked:
                             ducked = True
                             self.sink.gain = a.duck_gain
                         if hot >= a.bargein_chunks:
                             self.sink.gain = 1.0
                             ducked = False
+                            hot = 0
+                            miss_run = 0
                             self.barge_in()
                             if self.sm.state != S.USER_SPEAKING:
                                 continue
@@ -693,15 +714,22 @@ class Talk:
                             t_on = t_last = now
                             utt = list(preroll)
                             last_partial_len = 0
-                            hot = 0
                 else:
+                    hot = max(0, hot - a.bargein_decay)
                     if ducked:
-                        ducked = False
-                        self.sink.gain = 1.0
-                        if hot >= a.duck_chunks:
+                        miss_run += 1
+                        # only call it a finished backchannel after sustained silence, not the first stray miss —
+                        # otherwise natural micro-pauses inside one utterance flicker the volume and spam the log
+                        if miss_run >= a.bargein_release_chunks:
+                            ducked = False
+                            self.sink.gain = 1.0
+                            hot = 0
+                            miss_run = 0
                             self.backchannels += 1
-                            self.ui.note("backchannel ignored", "dim")
-                    hot = 0
+                            if self.verbose:
+                                self.ui.note("backchannel ignored", "dim")
+                    else:
+                        miss_run = 0
             elif st in (S.USER_SPEAKING, S.INTERRUPTED):
                 utt.append(chunk)
                 if p >= a.threshold:
@@ -713,16 +741,18 @@ class Talk:
                     partial_busy.set()
                     threading.Thread(target=partial_job, args=(np.concatenate(utt),), daemon=True).start()
                 sil_ms = (now - t_last) * 1e3
-                decision = self.ep.update(np.concatenate(utt) if sil_ms >= self.ep.min_ms else None, sil_ms) \
+                decision = self.ep.update(np.concatenate(utt), sil_ms, self._last_partial_text) \
                     if sil_ms >= self.ep.min_ms else None
                 if decision or (now - t_on) >= a.max_utt:
                     audio = np.concatenate(utt)
                     if (t_last - t_on) * 1e3 >= a.min_speech:
                         self.sm.vad_off()
-                        if decision == "done" and self.ep.last_p is not None:
-                            self.ui.note(f"turn end: smart-turn {self.ep.last_p:.2f} after {sil_ms:.0f} ms", "dim")
-                        elif decision == "timeout":
-                            self.ui.note(f"turn end: silence {sil_ms:.0f} ms" + (f" (smart-turn last {self.ep.last_p:.2f})" if self.ep.last_p is not None else ""), "dim")
+                        if self.verbose:
+                            if decision == "done" and self.ep.last_p is not None:
+                                self.ui.note(f"turn end: smart-turn {self.ep.last_p:.2f} after {sil_ms:.0f} ms", "dim")
+                            elif decision == "timeout":
+                                self.ui.note(f"turn end: silence {sil_ms:.0f} ms" + (f" (smart-turn last {self.ep.last_p:.2f})" if self.ep.last_p is not None else ""), "dim")
+                        self._last_partial_text = ""
                         self.turn_q.put((audio, t_last, None))
                     else:
                         self.sm.blip()
@@ -808,7 +838,8 @@ class Talk:
             if v:
                 self.ui.note(f"{label:26} p50 {pct(v, 50):5.0f} ms   p95 {pct(v, 95):5.0f} ms")
         self.ui.note(f"echo gate suppressed {self.echo.suppressed} chunks · backchannels ignored {self.backchannels} · "
-                     f"smart-turn checks {self.ep.checks} (p50 {pct(self.ep.cost_ms, 50):.0f} ms) · log {self.log_path}")
+                     f"smart-turn checks {self.ep.checks} (p50 {pct(self.ep.cost_ms, 50):.0f} ms, "
+                     f"{self.ep.held_on_filler} held on a trailing filler word) · log {self.log_path}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -824,11 +855,29 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--out-device", default="Yeti")
     ap.add_argument("--threshold", type=float, default=0.5)
     ap.add_argument("--bargein-threshold", type=float, default=0.75)
-    ap.add_argument("--bargein-chunks", type=int, default=10, help="consecutive 32 ms VAD hits to cut the agent (10 = 320 ms)")
-    ap.add_argument("--duck-chunks", type=int, default=3, help="hits before the voice is ducked (3 = 96 ms)")
+    ap.add_argument("--bargein-chunks", type=int, default=10,
+                     help="net accumulated 32 ms hits of sustained speech to cut the agent (10 = 320 ms of speech "
+                          "credit; a brief VAD dip only costs --bargein-decay units, not a full reset)")
+    ap.add_argument("--duck-chunks", type=int, default=3, help="net hits before the voice is ducked (3 = 96 ms)")
     ap.add_argument("--duck-gain", type=float, default=0.25)
+    ap.add_argument("--bargein-decay", type=int, default=1,
+                     help="units subtracted from the barge-in credit per missed (below-threshold) chunk; "
+                          "1 means a single 32 ms dip mid-sentence barely costs anything, unlike a hard reset")
+    ap.add_argument("--bargein-release-chunks", type=int, default=6,
+                     help="consecutive silent chunks needed after ducking before it's called a finished "
+                          "backchannel and the volume is restored (6 = ~190 ms); avoids repeated duck/undock "
+                          "flicker and repeated 'backchannel ignored' notes during one continuous utterance")
     ap.add_argument("--smart-turn", action=argparse.BooleanOptionalAction, default=True, help="Smart Turn v3.2 end-of-turn model")
+    ap.add_argument("--turn-threshold", type=float, default=0.7,
+                     help="minimum Smart Turn score to even consider the turn finished")
+    ap.add_argument("--turn-high-threshold", type=float, default=0.9,
+                     help="Smart Turn score at/above which the turn ends even on a trailing filler word "
+                          "('um', 'so', 'and', ...); between --turn-threshold and this, a filler-ending "
+                          "partial holds the turn open instead of cutting mid-hedge")
     ap.add_argument("--max-silence", type=int, default=1200, help="hard end of turn after this much silence (ms)")
+    ap.add_argument("--verbose", action=argparse.BooleanOptionalAction, default=False,
+                     help="show routine per-turn telemetry (memory hints, turn-end reason, backchannels) inline "
+                          "instead of keeping the conversation view to just what was said")
     ap.add_argument("--filler-after", type=float, default=1.5, help="seconds a tool may run silently before a filler phrase")
     ap.add_argument("--sim-len", type=float, default=0, help="use only the first N s of --sim")
     ap.add_argument("--sim-bargein-len", type=float, default=0, help="use only the first N s of --sim-bargein (0.3 = a backchannel)")

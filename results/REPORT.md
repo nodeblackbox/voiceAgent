@@ -210,6 +210,18 @@ Real-audio test (`agent/mic_mute_sim_test.py`, Kokoro-synthesized clips through 
 
 Headless UI test (`agent/tui_mic_test.py`): button click mutes and relabels itself red; F2 un-mutes and restores it; focus returns to the editor after a click. One bug found by the button test and fixed: Textual's `Content` label object doesn't support Python's `in` operator the way a plain string does — the button itself was correct, the first version of the test assertion was not.
 
+## Live-session fixes: barge-in reliability, hedging, clutter
+
+Found by actually talking to the agent for an extended session, fixed, verified with `agent/fixes_test.py` (15 deterministic checks against the real code):
+
+| bug | root cause | fix | verified |
+|---|---|---|---|
+| real sustained speech often failed to interrupt the agent | barge-in credit reset to zero on any single below-threshold chunk; natural speech is never perfectly continuous | leaky-bucket accumulator: a miss costs 1 unit (`--bargein-decay`), not the whole count | flutter pattern (dip every 6th chunk) now reliably cuts; the old logic provably could not |
+| "backchannel ignored" spammed 5x during one utterance, with audible volume flicker | duck/undock and the note fired on the very first stray miss | only release/log after `--bargein-release-chunks` (~190 ms) of real silence | 67%-duty-cycle pattern: 0 spurious notes, still escalates to a real cut; 3 genuinely separate bursts: exactly 3 clean notes |
+| Smart Turn cut mid-hedge on "um", "so", "yeah yeah so..." | any score ≥ 0.5 ended the turn | 3 tiers: <0.7 never, 0.7–0.9 held if the last live-caption word is a filler, ≥0.9 always ends | all four tier combinations verified directly |
+| transcript cluttered with "memory: N hints", "turn end: ...", "(nothing recognised)" | these were always-on notes | gated behind `--verbose` / `/verbose on|off`, default off | regression pass confirms off by default, toggle works |
+| empty `"heard up to: "..."` when interrupted before speaking | spoken text was empty but still quoted | renders "interrupted before it said anything" | both UI classes checked directly |
+
 ## Recommendations
 
 - Use hybrid mode. Budget ~50 ms ASR per utterance, ~150 ms for a minute of speech.

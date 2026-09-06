@@ -1,0 +1,30 @@
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\modules\rnn.py:123: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  warnings.warn(
+D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+[09/06/26 06:03:47] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+     mcp: demo on: calculate, convert_units, roll_dice
+     ready · Parakeet hybrid · Kokoro af_heart (550 MiB) · 
+anthropic:claude-haiku-4-5 · tools: current_time, remember, recall, 
+search_history, forget, calculate, convert_units, roll_dice · mic mute: 
+button/F2/"yeti" · type /help
+[  39.98s] listening → user speaking (vad_on)
+[  39.98s] user speaking → thinking (vad_off)
+#1 you  Say hello in one short sentence.
+[  41.05s] thinking → speaking (first_audio)
+[  42.94s] speaking → listening (playback_done)
+#1 af_heart  Hey Nasan, what's up?
+     asr -  llm→sentence 794ms  kokoro 245ms  end→audio 1058ms
+     state listening · mic on · model anthropic:claude-haiku-4-5 · voice 
+af_heart · search off · mcp demo · sound on · echo gate suppressed 0
+       last turn: asr None ms, llm first sentence 794 ms, end→audio 1058 ms
+     verbose on
+     verbose off
+     session: 1 turns, 0 interrupted
+     speech end → first audio   p50  1058 ms   p95  1058 ms
+     LLM first sentence         p50   794 ms   p95   794 ms
+     Kokoro first sentence      p50   245 ms   p95   245 ms
+     echo gate suppressed 0 chunks · backchannels ignored 0 · smart-turn checks 
+0 (p50 nan ms, 0 held on a trailing filler word) · log 
+D:\Downloads\voiceAgent\results\talk_20260906_060307.jsonl
