@@ -371,12 +371,30 @@ class StreamingSpeech:
                 break
             t_ready = self._now()
             t0 = time.perf_counter()
-            audio = self.tts.synth(s, self.speed)
-            gen = time.perf_counter() - t0
-            if self._stop.is_set():
-                break
-            self.sink.push(audio)
-            dur = len(audio) / SR
+            if hasattr(self.tts, "synth_stream"):
+                # engine streams its own sub-sentence chunks (e.g. NeuTTS): push each as it arrives
+                # instead of waiting for the whole sentence — finer-grained than Kokoro's per-sentence
+                # pipelining. `gen` here is time-to-first-chunk, the number that actually matters for
+                # first-audio latency; `dur` is the full sentence once every chunk has arrived.
+                first_gen, total_samples = None, 0
+                for chunk in self.tts.synth_stream(s, self.speed):
+                    if self._stop.is_set():
+                        break
+                    if first_gen is None:
+                        first_gen = time.perf_counter() - t0
+                    self.sink.push(chunk)
+                    total_samples += len(chunk)
+                if self._stop.is_set():
+                    break
+                gen = first_gen if first_gen is not None else (time.perf_counter() - t0)
+                dur = total_samples / SR
+            else:
+                audio = self.tts.synth(s, self.speed)
+                gen = time.perf_counter() - t0
+                if self._stop.is_set():
+                    break
+                self.sink.push(audio)
+                dur = len(audio) / SR
             self.m.sentences.append(SentenceMetric(idx, s, len(s), t_ready, gen, dur, gen / dur if dur else 0.0))
             idx += 1
         self.sink.finished = True

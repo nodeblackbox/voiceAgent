@@ -1,0 +1,2 @@
+Resolved 106 packages in 889ms
+error: failed to remove file `D:\Downloads\voiceAgent\.venv\Lib\site-packages\torch/_C.cp311-win_amd64.pyd`: Access is denied. (os error 5)

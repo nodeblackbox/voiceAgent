@@ -1,0 +1,73 @@
+  × No solution found when resolving dependencies:
+  ╰─▶ Because all of:
+          neutts<=1.1.0
+          neutts>=1.2.1
+      depend on torch>=2.8.0 and torch==2.6.0+cu124, we can conclude that
+      all of:
+          neutts<=1.1.0
+          neutts>=1.2.1
+       cannot be used.
+      And because only the following versions of neutts[llama] are available:
+          neutts[llama]==0.1.0
+          neutts[llama]==0.1.2
+          neutts[llama]==1.0.0
+          neutts[llama]==1.1.0
+          neutts[llama]==1.2.0
+          neutts[llama]==1.2.1
+          neutts[llama]==1.4.0
+          neutts[llama]==1.4.1
+      we can conclude that neutts[llama]<0.1.2 cannot be used. (1)
+
+      Because all of:
+          neutts>=0.1.2,<=1.1.0
+          neutts>=1.2.1
+      depend on torch>=2.8.0 and torch==2.6.0+cu124, we can conclude that
+      all of:
+          neutts>=0.1.2,<=1.1.0
+          neutts>=1.2.1
+       cannot be used.
+      And because we know from (1) that neutts[llama]<0.1.2 cannot be used, we
+      can conclude that neutts[llama]<1.0.0 cannot be used. (2)
+
+      Because all of:
+          neutts>=1.0.0,<=1.1.0
+          neutts>=1.2.1
+      depend on torch>=2.8.0 and torch==2.6.0+cu124, we can conclude that
+      all of:
+          neutts>=1.0.0,<=1.1.0
+          neutts>=1.2.1
+       cannot be used.
+      And because we know from (2) that neutts[llama]<1.0.0 cannot be used, we
+      can conclude that neutts[llama]<1.1.0 cannot be used. (3)
+
+      Because all of:
+          neutts==1.1.0
+          neutts>=1.2.1
+      depend on torch>=2.8.0 and torch==2.6.0+cu124, we can conclude that
+      all of:
+          neutts==1.1.0
+          neutts>=1.2.1
+       cannot be used.
+      And because we know from (3) that neutts[llama]<1.1.0 cannot be used, we
+      can conclude that neutts[llama]<1.2.0 cannot be used.
+      And because neutts[llama]==1.2.0 was yanked (reason: Broken wheel
+      build), we can conclude that neutts[llama]<1.2.1 cannot be used. (4)
+
+      Because neutts>=1.2.1 depends on torch>=2.8.0 and torch==2.6.0+cu124, we
+      can conclude that neutts>=1.2.1 cannot be used.
+      And because we know from (4) that neutts[llama]<1.2.1 cannot be used, we
+      can conclude that neutts[llama]<1.4.0 cannot be used. (5)
+
+      Because neutts>=1.4.0 depends on torchaudio>=2.8.0 and
+      torchaudio==2.6.0+cu124, we can conclude that neutts>=1.4.0 cannot be
+      used.
+      And because we know from (5) that neutts[llama]<1.4.0 cannot be used, we
+      can conclude that neutts[llama]<1.4.1 cannot be used. (6)
+
+      Because neutts==1.4.1 depends on torchaudio>=2.8.0 and
+      torchaudio==2.6.0+cu124, we can conclude that neutts==1.4.1 cannot be
+      used.
+      And because we know from (6) that neutts[llama]<1.4.1 cannot be used, we
+      can conclude that all versions of neutts[llama] cannot be used.
+      And because you require neutts[llama], we can conclude that your
+      requirements are unsatisfiable.

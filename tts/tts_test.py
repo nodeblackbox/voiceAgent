@@ -164,9 +164,20 @@ def exp_roundtrip(tts, text, speed) -> dict:
     return {"wer": w, "asr_ms": asr_s * 1e3, "audio_s": len(audio) / SR, "hyp": hyp, "wav": str(wav)}
 
 
+def make_engine(args):
+    if args.engine == "kokoro":
+        return KokoroTTS(voice=args.voice)
+    sys.path.insert(0, str(ROOT / "tts"))
+    from neutts_stream import NeuTTSEngine
+
+    return NeuTTSEngine(voice=args.voice, backbone=args.neutts_backbone)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--voice", default="af_heart")
+    ap.add_argument("--engine", choices=["kokoro", "neutts"], default="kokoro")
+    ap.add_argument("--voice", default=None, help="Kokoro voice (af_heart) or NeuTTS reference (dave, jo, ...)")
+    ap.add_argument("--neutts-backbone", default="neuphonic/neutts-air-q8-gguf")
     ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--wps", type=float, default=25, help="simulated LLM words per second")
     ap.add_argument("--play", action="store_true", help="actually play through the speakers")
@@ -174,13 +185,15 @@ def main():
     ap.add_argument("--text", default=TEXT)
     ap.add_argument("--skip", nargs="*", default=[], choices=["offline", "stream", "bargein", "roundtrip"])
     args = ap.parse_args()
+    if args.voice is None:
+        args.voice = "af_heart" if args.engine == "kokoro" else "dave"
 
     before = torch.cuda.memory_allocated() / 2**20 if torch.cuda.is_available() else 0
-    tts = KokoroTTS(voice=args.voice)
-    con.print(f"[bold]Kokoro[/] voice={args.voice} device={tts.device} load {tts.load_s:.1f}s warm-up {tts.warmup_s:.2f}s "
-              f"VRAM {tts.vram_mib():.0f} MiB (torch allocated)")
-    out = {"voice": args.voice, "speed": args.speed, "load_s": tts.load_s, "warmup_s": tts.warmup_s,
-           "vram_mib": tts.vram_mib(), "wps": args.wps, "play": args.play}
+    tts = make_engine(args)
+    con.print(f"[bold]{args.engine}[/] voice={args.voice} device={tts.device} load {tts.load_s:.1f}s "
+              f"warm-up {tts.warmup_s:.2f}s VRAM {tts.vram_mib():.0f} MiB (torch allocated)")
+    out = {"engine": args.engine, "voice": args.voice, "speed": args.speed, "load_s": tts.load_s,
+           "warmup_s": tts.warmup_s, "vram_mib": tts.vram_mib(), "wps": args.wps, "play": args.play}
     if "offline" not in args.skip:
         out["offline"] = exp_offline(tts, args.text, args.speed)
     if "stream" not in args.skip:
@@ -189,7 +202,7 @@ def main():
         out["bargein"] = exp_bargein(tts, args, args.text)
     if "roundtrip" not in args.skip:
         out["roundtrip"] = exp_roundtrip(tts, args.text, args.speed)
-    p = RESULTS / f"tts_{args.voice}{'_play' if args.play else ''}.json"
+    p = RESULTS / f"tts_{args.engine}_{args.voice}{'_play' if args.play else ''}.json"
     p.write_text(json.dumps(out, indent=2, default=str))
     con.print(f"\nsaved -> {p}")
 

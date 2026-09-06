@@ -1,0 +1,13 @@
+Using Python 3.11.5 environment at: .venv-neutts
+Resolved 106 packages in 649ms
+   Building llama-cpp-python==0.3.35
+Downloading numpy (12.0MiB)
+Downloading networkx (2.0MiB)
+Downloading hf-xet (3.8MiB)
+Downloading lxml (3.8MiB)
+Downloading pygments (1.2MiB)
+ Downloaded hf-xet
+ Downloaded lxml
+ Downloaded pygments
+ Downloaded networkx
+ Downloaded numpy

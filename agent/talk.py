@@ -131,6 +131,8 @@ class Talk:
             [a.agent_name.lower(), f"hey {a.agent_name.lower()}"]
         self.verbose = a.verbose    # routine per-turn telemetry (memory hints, turn-end reason, backchannels)
         self._last_partial_text = ""  # most recent live caption, used by the Smart Turn filler-word guard
+        self.tts_engine = a.tts_engine
+        self._tts_cache: dict[str, object] = {}  # engines already loaded this session, kept resident once loaded
 
     # ---------------------------------------------------------------- loading
     def load(self):
@@ -143,8 +145,9 @@ class Talk:
         self.ui.set_status("loading Smart Turn…")
         self.ep = Endpointer(min_silence_ms=a.min_silence, max_silence_ms=a.max_silence, use_model=a.smart_turn,
                              threshold=a.turn_threshold, high_threshold=a.turn_high_threshold)
-        self.ui.set_status("loading Kokoro…")
-        self.tts = KokoroTTS(voice=a.voice)
+        self.ui.set_status(f"loading {a.tts_engine}…")
+        self.tts = self._load_tts_engine(a.tts_engine)
+        self._tts_cache[a.tts_engine] = self.tts
         self.sink = NullSink(on_play=self.echo.push_played) if a.no_play else \
             SpeakerSink(device=resolve_output_device(a.out_device), on_play=self.echo.push_played)
         self.ui.set_status("connecting to model…")
@@ -160,9 +163,28 @@ class Talk:
         for msg in self.brain.mcp_autoconnect():
             self.ui.note(f"mcp: {msg}", "yellow dim")
         self.ui.set_status("")
-        self.ui.note(f"ready · Parakeet hybrid · Kokoro {a.voice} ({self.tts.vram_mib():.0f} MiB) · {a.model} · "
-                     f"tools: {', '.join(n for n, _ in self.brain.tool_sources())} · "
-                     f"mic mute: button/F2/\"{self.wake_words[0]}\" · type /help", "green dim")
+        self.ui.note(f"ready · Parakeet hybrid · {a.tts_engine} {self.tts.voice} ({self.tts.vram_mib():.0f} MiB) · "
+                     f"{a.model} · tools: {', '.join(n for n, _ in self.brain.tool_sources())} · "
+                     f"mic mute: button/F2/\"{self.wake_words[0]}\" · /tts neutts for cloning · type /help", "green dim")
+
+    def _load_tts_engine(self, name: str, voice: str | None = None):
+        a = self.a
+        if name == "kokoro":
+            return KokoroTTS(voice=voice or a.voice)
+        sys.path.insert(0, str(ROOT / "tts"))
+        from neutts_stream import NeuTTSEngine
+
+        return NeuTTSEngine(voice=voice or a.neutts_voice, backbone=a.neutts_backbone)
+
+    def _switch_tts(self, name: str) -> None:
+        """Swap the live TTS engine. Each engine loads once and stays resident for the rest of the
+        session (switching back is instant); the first switch to neutts pays its ~1-2 min load cost."""
+        if name in self._tts_cache:
+            self.tts = self._tts_cache[name]
+        else:
+            self.tts = self._load_tts_engine(name)
+            self._tts_cache[name] = self.tts
+        self.tts_engine = name
 
     def _search_on(self) -> str:
         sys.path.insert(0, str(ROOT / "search"))
@@ -197,13 +219,53 @@ class Talk:
             self.ui.model = spec
             return f"model → {spec}"
 
-        @r.add("voice", "voice <name>", "switch the Kokoro voice, e.g. af_bella, am_michael, bf_emma")
+        @r.add("voice", "voice <name>", "switch the voice: a Kokoro name (af_bella, ...) or, on NeuTTS, a cloned reference")
         def _voice(args):
             if not args:
-                return f"voice is {self.tts.voice}"
-            self.tts.set_voice(args[0])
+                return f"voice is {self.tts.voice} ({self.tts_engine})"
+            self.ui.set_status("switching voice…")
+            try:
+                self.tts.set_voice(args[0])
+            finally:
+                self.ui.set_status("")
             self.ui.voice = args[0]
             return f"voice → {args[0]}"
+
+        @r.add("tts", "tts [kokoro|neutts]", "switch the TTS engine (neutts loads lazily, ~1-2 min first time)")
+        def _tts(args):
+            if not args:
+                return f"engine is {self.tts_engine} · voice {self.tts.voice}"
+            if args[0] not in ("kokoro", "neutts"):
+                return "usage: /tts [kokoro|neutts]"
+            if args[0] == self.tts_engine:
+                return f"already on {args[0]}"
+            self.ui.set_status(f"loading {args[0]}…")
+            try:
+                self._switch_tts(args[0])
+            except Exception as e:  # noqa: BLE001
+                return f"could not switch to {args[0]}: {type(e).__name__}: {str(e)[:200]}"
+            finally:
+                self.ui.set_status("")
+            self.ui.voice = self.tts.voice
+            return f"tts → {args[0]} (voice {self.tts.voice})"
+
+        @r.add("clone", "clone <wav>[|transcript] | <name>", "clone a voice from a reference clip and switch NeuTTS to speak as it")
+        def _clone(args):
+            if not args:
+                from neutts_stream import bundled_voices
+                return f"bundled: {', '.join(bundled_voices()) or 'none downloaded'} · usage: /clone path.wav[|transcript text]"
+            spec = " ".join(args)
+            self.ui.set_status("cloning voice…")
+            try:
+                if self.tts_engine != "neutts":
+                    self._switch_tts("neutts")
+                self.tts.set_voice(spec)
+            except Exception as e:  # noqa: BLE001
+                return f"clone failed: {type(e).__name__}: {str(e)[:200]}"
+            finally:
+                self.ui.set_status("")
+            self.ui.voice = self.tts.voice
+            return f"cloned and switched to {self.tts.voice} (say something to hear it: /say hello there)"
 
         @r.add("tools", "tools", "list the tools the model has right now")
         def _tools(args):
@@ -294,9 +356,9 @@ class Talk:
                   f"{last.llm_first_sentence_ms and round(last.llm_first_sentence_ms)} ms, end→audio "
                   f"{last.speech_end_to_audio_ms and round(last.speech_end_to_audio_ms)} ms") if last else "no turns yet"
             return (f"state {self.sm.state.value} · mic {'MUTED' if self.mic_muted else 'on'} · model {self.brain.model_spec} · "
-                    f"voice {self.tts.voice} · search {'on' if self.brain.search_on else 'off'} · "
-                    f"mcp {', '.join(self.brain.mcp_tools) or 'none'} · {'muted' if self.muted else 'sound on'} · "
-                    f"echo gate suppressed {self.echo.suppressed}\n  {lt}")
+                    f"tts {self.tts_engine} voice {self.tts.voice} ({', '.join(self._tts_cache)} loaded) · "
+                    f"search {'on' if self.brain.search_on else 'off'} · mcp {', '.join(self.brain.mcp_tools) or 'none'} · "
+                    f"{'muted' if self.muted else 'sound on'} · echo gate suppressed {self.echo.suppressed}\n  {lt}")
 
         @r.add("memory", "memory [search <q> | notes | forget <id> | stats]", "the SQLite memory (cheap RAG)")
         def _memory(args):
@@ -847,7 +909,14 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--model", default="anthropic:claude-haiku-4-5")
     ap.add_argument("--agent-name", default="Yeti")
     ap.add_argument("--user-name", default="Nasan")
-    ap.add_argument("--voice", default="af_heart")
+    ap.add_argument("--voice", default="af_heart", help="Kokoro voice (af_heart, af_bella, am_michael, ...)")
+    ap.add_argument("--tts-engine", choices=["kokoro", "neutts"], default="kokoro",
+                     help="kokoro (fast, fixed voices) or neutts (slower, clones a reference voice); "
+                          "switch live with /tts")
+    ap.add_argument("--neutts-voice", default="dave", help="NeuTTS reference: a bundled sample name, "
+                     "a wav path (needs a matching .txt), or 'wav_path|transcript'")
+    ap.add_argument("--neutts-backbone", default="neuphonic/neutts-air-q8-gguf",
+                     help="neuphonic/neutts-air-q8-gguf (default) or -q4-gguf for less VRAM/more speed at lower quality")
     ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--max-tokens", type=int, default=300)
     ap.add_argument("--first-min-words", type=int, default=6)

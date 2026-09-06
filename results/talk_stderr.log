@@ -129,3 +129,25 @@ Traceback (most recent call last):
   File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 1819, in call_from_thread
     raise RuntimeError("App is not running")
 RuntimeError: App is not running
+Exception in thread agent:
+Traceback (most recent call last):
+  File "C:\Python311\Lib\threading.py", line 1038, in _bootstrap_inner
+    self.run()
+  File "C:\Python311\Lib\threading.py", line 975, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 167, in _runner
+    self.call_from_thread(self.add_block, "agent stopped · Ctrl+Q to exit", "warn")
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 1819, in call_from_thread
+    raise RuntimeError("App is not running")
+RuntimeError: App is not running
+Exception in thread agent:
+Traceback (most recent call last):
+  File "C:\Python311\Lib\threading.py", line 1038, in _bootstrap_inner
+    self.run()
+  File "C:\Python311\Lib\threading.py", line 975, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 167, in _runner
+    self.call_from_thread(self.add_block, "agent stopped · Ctrl+Q to exit", "warn")
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 1819, in call_from_thread
+    raise RuntimeError("App is not running")
+RuntimeError: App is not running

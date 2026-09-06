@@ -1,0 +1,17 @@
+Using Python 3.11.5 environment at: .venv-neutts
+Resolved 105 packages in 227ms
+Downloading torchaudio (2.4MiB)
+Downloading torch (230.2MiB)
+ Downloaded torchaudio
+ Downloaded torch
+Prepared 4 packages in 26.81s
+Uninstalled 4 packages in 7.25s
+Installed 4 packages in 20.91s
+ - torch==2.14.0
+ + torch==2.8.0
+ - torchao==0.12.0
+ + torchao==0.18.0
+ - torchaudio==2.11.0
+ + torchaudio==2.8.0
+ ~ torchtune==0.6.1
+warning: The package `huggingface-hub==1.30.0` does not have an extra named `hf-transfer`
