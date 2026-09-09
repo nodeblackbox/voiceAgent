@@ -5,7 +5,8 @@ Editor keys
     Enter            send (unless you are inside an unclosed ``` code fence)
     Shift+Enter      newline (Windows Terminal / kitty-protocol terminals); Ctrl+J and Alt+Enter always work
     Ctrl+Up/Down     previous / next thing you sent
-    Ctrl+L           clear the editor          Ctrl+C / Ctrl+Q   quit
+    Ctrl+L           clear the editor          Ctrl+C / Ctrl+Q   quit (if your terminal doesn't eat them)
+    /quit or the ✕ Quit button   always works to exit, regardless of what your terminal does with Ctrl+Q
     F2 (or the button top-right)   mute/unmute the microphone — stops it listening, does not touch anything else
 Pasting keeps every line (bracketed paste); nothing is sent until you press Enter.
 
@@ -43,6 +44,9 @@ Screen { layout: vertical; background: $background; }
 #mic_btn:hover { background: #15803d; }
 #mic_btn.-muted { background: #dc2626; }
 #mic_btn.-muted:hover { background: #b91c1c; }
+#quit_btn { min-width: 10; height: 1; padding: 0 1; margin: 0 1 0 0; border: none;
+            background: #475569; color: #ffffff; text-style: bold; }
+#quit_btn:hover { background: #334155; }
 #log { height: 1fr; padding: 0 1; }
 .blk { margin: 0 0 1 0; padding: 0 1; }
 .you { border-left: thick #38bdf8; color: #bae6fd; }
@@ -146,11 +150,12 @@ class AgentApp(App):
         with Horizontal(id="topbar"):
             yield Static("", id="status")
             yield Button("🎤 mic on  ·  F2", id="mic_btn")
+            yield Button("✕ Quit", id="quit_btn")
         yield VerticalScroll(id="log")
         yield Static("", id="meter")
         yield PromptArea(id="input")
         yield Static(" Enter send · Shift+Enter / Ctrl+J newline · Ctrl+↑↓ history · F2 mic on/off · "
-                     "/help · /explain /review /next after a paste", id="hint")
+                     "/quit or ✕ Quit to exit · /help · /explain /review /next after a paste", id="hint")
 
     def on_mount(self) -> None:
         self.query_one("#input", PromptArea).focus()
@@ -159,12 +164,26 @@ class AgentApp(App):
         threading.Thread(target=self._runner, daemon=True, name="agent").start()
 
     def _runner(self):
+        def safe_block(*a):
+            # the app may already be torn down by the time this fires (e.g. /quit or Ctrl+Q raced us,
+            # or a test harness exited) — same "shutting down, nothing to report to" guard TextualUI._call
+            # uses elsewhere; without it this raises NoMatches from a daemon thread on a normal exit.
+            if not getattr(self, "is_running", False):
+                return
+            try:
+                self.call_from_thread(self.add_block, *a)
+            except Exception:  # noqa: BLE001
+                pass
+
         try:
             self.start_fn()
         except Exception as e:  # noqa: BLE001
-            self.call_from_thread(self.add_block, f"agent loop crashed: {type(e).__name__}: {e}", "err")
+            import traceback
+            traceback.print_exc()  # full trace to stderr (results/talk_stderr.log in TUI mode) — the
+            # one-line UI message below only has the type+message, not enough to debug from alone
+            safe_block(f"agent loop crashed: {type(e).__name__}: {e}  (full trace in results/talk_stderr.log)", "err")
         finally:
-            self.call_from_thread(self.add_block, "agent stopped · Ctrl+Q to exit", "warn")
+            safe_block("agent stopped · type /quit or click Quit to exit", "warn")
 
     # ---------------------------------------------------------------- input
     def on_prompt_area_submit(self, msg: PromptArea.Submit) -> None:
@@ -175,6 +194,10 @@ class AgentApp(App):
         if event.button.id == "mic_btn" and self.mic_fn:
             self.run_worker(lambda: self.mic_fn(), thread=True, exclusive=False)
             self.query_one("#input", PromptArea).focus()
+        elif event.button.id == "quit_btn":
+            # a guaranteed way out that doesn't depend on Ctrl+Q reaching us: some terminals/editors
+            # grab that combo for themselves before it ever reaches this app.
+            self.action_quit()
 
     def action_toggle_mic(self) -> None:
         if self.mic_fn:
@@ -340,6 +363,11 @@ class TextualUI:
     def note(self, msg: str, style: str = "dim"):
         cls = "err" if "red" in style else "warn" if "yellow" in style else "note"
         self._call(self.app.add_block if self.app else (lambda *a: None), msg, cls)
+
+    def quit_app(self):
+        """Closes the whole screen (not just the agent loop) — what /quit uses, so typing it always
+        works even when Ctrl+Q is grabbed by the terminal/editor before it reaches us."""
+        self._call(self.app.action_quit if self.app else (lambda: None))
 
 
 def run_app(ui: TextualUI, start_fn, submit_fn, mic_fn=None) -> None:

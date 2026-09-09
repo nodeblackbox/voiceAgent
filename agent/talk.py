@@ -20,6 +20,19 @@ unheard.
 """
 from __future__ import annotations
 
+import os
+
+# HF_HOME is persisted as a Windows *User* env var pointing at D:\hf-cache (C: doesn't have room for the
+# model caches — see README). User env vars only reach NEW processes started from a shell that itself
+# started after the var was set; a long-lived terminal tab predating that misses it silently, and the
+# fallback (~/.cache/huggingface on C:) re-downloads the ~2.4 GB Parakeet model every launch — which is
+# exactly what "loading Parakeet" hanging for a minute+ with no visible progress (stderr is redirected to
+# a log file in TUI mode) turned out to be. Setting it here removes the dependency on shell freshness
+# entirely; setdefault so an already-correct environment is left alone. Must run before any import
+# (kokoro, onnx_asr, ...) that touches huggingface_hub.
+if os.name == "nt" and os.path.isdir(r"D:\hf-cache\huggingface"):
+    os.environ.setdefault("HF_HOME", r"D:\hf-cache\huggingface")
+
 import argparse
 import collections
 import json
@@ -214,9 +227,10 @@ class Talk:
             self.ui.set_status("switching model…")
             try:
                 spec = self.brain.set_model(args[0])
+                self.ui.model = spec  # must land before the set_status("") below repaints the header,
+                # or the status bar keeps showing the old model even though the switch already happened
             finally:
                 self.ui.set_status("")
-            self.ui.model = spec
             return f"model → {spec}"
 
         @r.add("voice", "voice <name>", "switch the voice: a Kokoro name (af_bella, ...) or, on NeuTTS, a cloned reference")
@@ -226,9 +240,9 @@ class Talk:
             self.ui.set_status("switching voice…")
             try:
                 self.tts.set_voice(args[0])
+                self.ui.voice = args[0]  # before set_status("") repaints the header below, not after
             finally:
                 self.ui.set_status("")
-            self.ui.voice = args[0]
             return f"voice → {args[0]}"
 
         @r.add("tts", "tts [kokoro|neutts]", "switch the TTS engine (neutts loads lazily, ~1-2 min first time)")
@@ -242,11 +256,11 @@ class Talk:
             self.ui.set_status(f"loading {args[0]}…")
             try:
                 self._switch_tts(args[0])
+                self.ui.voice = self.tts.voice  # before set_status("") repaints the header below
             except Exception as e:  # noqa: BLE001
                 return f"could not switch to {args[0]}: {type(e).__name__}: {str(e)[:200]}"
             finally:
                 self.ui.set_status("")
-            self.ui.voice = self.tts.voice
             return f"tts → {args[0]} (voice {self.tts.voice})"
 
         @r.add("clone", "clone <wav>[|transcript] | <name>", "clone a voice from a reference clip and switch NeuTTS to speak as it")
@@ -260,11 +274,11 @@ class Talk:
                 if self.tts_engine != "neutts":
                     self._switch_tts("neutts")
                 self.tts.set_voice(spec)
+                self.ui.voice = self.tts.voice  # before set_status("") repaints the header below
             except Exception as e:  # noqa: BLE001
                 return f"clone failed: {type(e).__name__}: {str(e)[:200]}"
             finally:
                 self.ui.set_status("")
-            self.ui.voice = self.tts.voice
             return f"cloned and switched to {self.tts.voice} (say something to hear it: /say hello there)"
 
         @r.add("tools", "tools", "list the tools the model has right now")
@@ -378,6 +392,8 @@ class Talk:
         @r.add("quit", "quit", "exit")
         def _quit(args):
             self.quit.set()
+            if hasattr(self.ui, "quit_app"):
+                self.ui.quit_app()  # TextualUI: close the screen too, not just the mic/agent loop
             return "bye"
 
         return r

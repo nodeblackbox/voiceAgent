@@ -30,11 +30,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import queue
 import sys
 import threading
 import time
 from pathlib import Path
+
+# See the matching comment in agent/talk.py: HF_HOME is a persisted Windows User env var (D: has room,
+# C: doesn't). This worker is spawned as a subprocess that inherits whatever env its parent had, so set
+# it defensively here too, before the backbone/codec downloads that would otherwise land on C:.
+if os.name == "nt" and os.path.isdir(r"D:\hf-cache\huggingface"):
+    os.environ.setdefault("HF_HOME", r"D:\hf-cache\huggingface")
 
 TTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TTS_DIR))

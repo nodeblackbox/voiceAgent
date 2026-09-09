@@ -9,6 +9,12 @@ from pathlib import Path
 
 import numpy as np
 
+# See the matching comment in agent/talk.py: HF_HOME is a persisted Windows User env var (D: has room,
+# C: doesn't) that a stale shell may not have inherited, silently causing a full model re-download.
+# Set it defensively for anyone importing this module directly (bench scripts, standalone tests).
+if os.name == "nt" and os.path.isdir(r"D:\hf-cache\huggingface"):
+    os.environ.setdefault("HF_HOME", r"D:\hf-cache\huggingface")
+
 ROOT = Path(__file__).resolve().parent.parent
 AUDIO_DIR = ROOT / "audio"
 RESULTS_DIR = ROOT / "results"
