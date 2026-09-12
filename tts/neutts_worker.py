@@ -37,14 +37,27 @@ import threading
 import time
 from pathlib import Path
 
-# See the matching comment in agent/talk.py: HF_HOME is a persisted Windows User env var (D: has room,
-# C: doesn't). This worker is spawned as a subprocess that inherits whatever env its parent had, so set
-# it defensively here too, before the backbone/codec downloads that would otherwise land on C:.
-if os.name == "nt" and os.path.isdir(r"D:\hf-cache\huggingface"):
-    os.environ.setdefault("HF_HOME", r"D:\hf-cache\huggingface")
-
 TTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TTS_DIR))
+
+# HF_HOME (-> D:\hf-cache, where the gated Neuphonic weights already live) and HF_TOKEN are Windows User
+# env vars; this subprocess inherits whatever its parent had, which may be a stale shell that never saw
+# them. Read them from the registry before anything touches huggingface_hub. See winenv.py.
+from winenv import load_user_env  # noqa: E402
+
+load_user_env(["HF_HOME", "HF_TOKEN", "HF_HUB_OFFLINE"])
+
+# The protocol owns stdout. neutts itself print()s to stdout ("Loading backbone from: ...", and
+# "Using seed N" on EVERY synth), and llama.cpp/tqdm write to the C-level fds — any of that landing
+# on our pipe desynchronises the JSON+binary framing (the first symptom was the client reporting
+# "no response from worker": it had read "Loading backbone from..." as the ready line). So: keep a
+# private copy of the real stdout fd for emit()/emit_chunk(), then point fd 1 (and sys.stdout) at
+# stderr so every stray print, from any library, goes to the log instead.
+_PROTO_FD = os.dup(sys.stdout.fileno())
+os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
+sys.stdout = sys.stderr
+_proto = os.fdopen(_PROTO_FD, "wb", buffering=0)
+
 import neutts_compat  # noqa: E402
 
 neutts_compat.apply()
@@ -77,23 +90,30 @@ def resolve_reference(spec: str, samples_dir: Path) -> tuple[Path, str]:
 
 
 def emit(obj: dict) -> None:
-    sys.stdout.buffer.write((json.dumps(obj) + "\n").encode("utf-8"))
-    sys.stdout.buffer.flush()
+    _proto.write((json.dumps(obj) + "\n").encode("utf-8"))
 
 
 def emit_chunk(audio: np.ndarray) -> None:
     data = np.asarray(audio, dtype=np.float32).tobytes()
     emit({"event": "chunk", "n": len(audio)})
-    sys.stdout.buffer.write(data)
-    sys.stdout.buffer.flush()
+    _proto.write(data)
 
 
 class Worker:
-    def __init__(self, backbone: str, codec: str, device: str, voice: str, samples_dir: Path, watermark: bool):
+    def __init__(self, backbone: str, codec: str, device: str, voice: str, samples_dir: Path, watermark: bool,
+                 codec_device: str = "auto", seed: int | None = None):
         self.samples_dir = samples_dir
         self._ref_cache: dict[str, tuple] = {}
         t0 = time.perf_counter()
-        self.model = FastNeuTTS(backbone_repo=backbone, backbone_device=device, codec_repo=codec, codec_device="cpu")
+        # backbone = llama.cpp (its own CUDA build, independent of torch). codec = torch: on a CUDA torch
+        # it can share the GPU, on a CPU-only torch (the original .venv-neutts) it must stay on CPU.
+        if codec_device == "auto":
+            codec_device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.codec_device = codec_device
+        # seed=None -> neutts draws a fresh seed per call (and prints it, to stderr now); a fixed seed
+        # makes repeated runs of the same text comparable for benchmarking.
+        self.model = FastNeuTTS(backbone_repo=backbone, backbone_device=device, codec_repo=codec,
+                                codec_device=codec_device, seed=seed)
         if not watermark:
             self.model.watermarker = None
         self.load_s = time.perf_counter() - t0
@@ -108,8 +128,23 @@ class Worker:
             return self._ref_cache[spec]
         wav_path, ref_text = resolve_reference(spec, self.samples_dir)
         cache_path = wav_path.with_suffix(".pt")
-        codes = torch.load(cache_path) if cache_path.exists() else self.model.encode_reference(wav_path)
-        if not cache_path.exists():
+        codes = None
+        if cache_path.exists():
+            # .pt files shipped with the NeuTTS repo samples were pickled with older objects that
+            # torch>=2.6's weights_only=True default rejects (UnpicklingError). These are local files
+            # we put here ourselves, so fall back to a full load; if even that isn't a tensor, drop
+            # the cache and re-encode from the wav (a few hundred ms, once).
+            try:
+                codes = torch.load(cache_path)
+            except Exception:  # noqa: BLE001
+                try:
+                    codes = torch.load(cache_path, weights_only=False)
+                except Exception:  # noqa: BLE001
+                    codes = None
+            if codes is not None and not torch.is_tensor(codes):
+                codes = None
+        if codes is None:
+            codes = self.model.encode_reference(wav_path)
             torch.save(codes, cache_path)
         self._ref_cache[spec] = (codes, ref_text)
         return codes, ref_text
@@ -134,10 +169,14 @@ class Worker:
                 cancel.set()
             else:
                 cmd_q.put(cmd)
-        cmd_q.put({"cmd": "quit"})  # stdin closed (parent died/exited): shut down cleanly
+        # stdin closed: the parent exited or died. Stop any generation in flight right now (otherwise a
+        # mid-sentence worker would keep the GPU busy until that sentence finished) and shut down.
+        cancel.set()
+        cmd_q.put({"cmd": "quit"})
 
     def run(self) -> None:
-        emit({"event": "ready", "voice": self.voice, "load_s": self.load_s, "warmup_s": self.warmup_s})
+        emit({"event": "ready", "voice": self.voice, "load_s": self.load_s, "warmup_s": self.warmup_s,
+              "codec_device": self.codec_device, "torch": torch.__version__, "python": sys.executable})
         cmd_q: queue.Queue = queue.Queue()
         cancel = threading.Event()
         threading.Thread(target=self._read_stdin, args=(cmd_q, cancel), daemon=True).start()
@@ -163,6 +202,16 @@ class Worker:
             except Exception as e:  # noqa: BLE001
                 emit({"event": "error", "id": cmd.get("id"), "message": f"{type(e).__name__}: {e}"})
 
+    def close(self) -> None:
+        """Free the llama.cpp backbone explicitly. Leaving it to the interpreter-exit destructor is what
+        produces the noisy `llama_free_model ... KeyboardInterrupt` traceback on shutdown."""
+        backbone = getattr(self.model, "backbone", None)
+        if backbone is not None and hasattr(backbone, "close"):
+            try:
+                backbone.close()
+            except Exception:  # noqa: BLE001
+                pass
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -172,13 +221,21 @@ def main() -> None:
     ap.add_argument("--voice", default="dave")
     ap.add_argument("--samples-dir", default=str(TTS_DIR / "neutts_samples"))
     ap.add_argument("--no-watermark", action="store_true", default=True)
+    ap.add_argument("--codec-device", default="auto", help="cuda | cpu | auto (cuda if this venv's torch has it)")
+    ap.add_argument("--seed", type=int, default=None, help="fixed sampling seed (default: fresh per call)")
     args = ap.parse_args()
     try:
-        w = Worker(args.backbone, args.codec, args.device, args.voice, Path(args.samples_dir), not args.no_watermark)
+        w = Worker(args.backbone, args.codec, args.device, args.voice, Path(args.samples_dir), not args.no_watermark,
+                   codec_device=args.codec_device, seed=args.seed)
     except Exception as e:  # noqa: BLE001
         emit({"event": "error", "message": f"startup failed: {type(e).__name__}: {e}"})
         sys.exit(1)
-    w.run()
+    try:
+        w.run()
+    except KeyboardInterrupt:
+        pass  # console Ctrl+C in plain mode reaches every process on the console; exit quietly
+    finally:
+        w.close()
 
 
 if __name__ == "__main__":

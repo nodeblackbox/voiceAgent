@@ -125,6 +125,40 @@ Design: Kokoro renders a whole segment at once, so streaming is pipelined at sen
 
 First-audio breakdown: the first clause closes at 0.28 s (7 words at 25 words/s), Kokoro takes ~150 to 200 ms, then one 21 ms audio block. A faster LLM or an earlier first-clause release lowers it further.
 
+## NeuTTS-Air: the cloning engine, next to Kokoro (`tts/neutts_stream.py`, 2026-09-09)
+
+Design: NeuTTS-Air (748M LLM backbone as a Q8 GGUF on llama.cpp CUDA + NeuCodec in torch) needs `torch>=2.8`, which the main venv cannot have, so it runs as a worker process in `.venv-neutts` and streams float32 chunks over stdin/stdout to a client that presents Kokoro's exact interface. `agent/talk.py` keeps both engines resident and swaps with `/tts`; barge-in sends `cancel`, read on a worker thread, so generation stops within one internal chunk.
+
+| metric (4 sentences, sequential, RTX 4090) | codec on CUDA (torch 2.11 cu126) | codec on CPU |
+|---|---:|---:|
+| first audio chunk of a sentence (median) | **223 ms** | 383 ms |
+| RTF (median) | **0.34** | 0.64 |
+| per sentence: generation for 3.3–6.2 s of audio | 1.2–2.0 s, 7–13 chunks | 1.5–4.4 s |
+| load / warm-up | 24 s / 1.0 s | 22 s / 1.0 s |
+| barge-in: `cancel` round trip (protocol test) | 51 ms | |
+| voices | dave, jo, paul, emily, greta, juliette, mateo, sophie, steven, `/clone` | |
+
+Against Kokoro on the same box (first sentence ~180 ms, RTF 0.014–0.05): NeuTTS is ~25x the compute for the same audio, in exchange for speaking as any 3–15 s reference clip. Its first chunk still lands before a Kokoro sentence would finish rendering, so the sentence pipeline keeps up.
+
+Head-to-head through the same pipeline (`tts/tts_test.py`, same 5-sentence paragraph, simulated LLM at 25 words/s, then the real agent with `--say` turns and live `/tts` switches, 2026-09-10):
+
+| | Kokoro af_heart | NeuTTS-Air paul (Q8, codec on CUDA) |
+|---|---:|---:|
+| load / warm-up | 3.9 s / 1.9 s | 27.8 s / 1.6 s |
+| VRAM | 0.55 GB | ~5 GB (backbone + codec) |
+| offline per sentence (33–105 chars) | 153–197 ms, RTF 0.03–0.06 | 0.99–2.1 s, RTF 0.35 |
+| streaming: first text → first audio | 448 ms | **512 ms** |
+| gaps/underruns over ~21 s of audio | 0 | 0 |
+| barge-in: audio after `interrupt()` / stop | 0 ms / 5.6 ms | 0 ms / 5.3 ms |
+| round trip: Parakeet transcribing it | WER 0.027 | **WER 0.027** (identical; only "barge-in") |
+| in the agent: turn end → first audio (Haiku) | 0.95–1.10 s | 1.12–1.41 s |
+| in the agent: TTS first sentence | 176–207 ms | 236–506 ms |
+| `/tts` switch, engine already loaded | instant | instant (first load ~30 s, then resident) |
+
+The whole cost of cloning, felt from the user's chair, is ~60 ms more to first audio and ~0.2–0.4 s more per turn; barge-in and intelligibility are unchanged.
+
+What blocked it, each fixed in code: (1) the gated weights were already in the shared `D:\hf-cache` (a fully cached file is served without a token); (2) `llama-cpp-python` 0.3.35's cu124 wheel faults with an illegal instruction on this Ryzen — 0.3.4 runs; (3) `neutts` prints to stdout on every call, so the worker re-points fd 1 at stderr and keeps a private fd for the protocol; (4) the sample `.pt` reference caches fail torch≥2.6's `weights_only` load — fallback then re-encode; (5) an unread `stderr=PIPE` deadlocked the client on the codec's progress bar — now drained on a thread. Pins and rebuild recipe: `tts/README_NEUTTS.md`.
+
 ## LLM providers through LiteLLM (streaming, spoken-style probes, 300 max tokens)
 
 Time to first token / first complete sentence, best and worst of three probes:

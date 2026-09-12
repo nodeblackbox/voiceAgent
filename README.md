@@ -61,6 +61,37 @@ Kokoro-82M on the GPU via `kokoro==0.9.4` and `torch==2.6.0+cu124` (install torc
 Mic selection is now by name: `--device Yeti` (default) instead of an index, because Windows renumbers
 devices between sessions.
 
+### Second engine: NeuTTS-Air (voice cloning) — `tts/neutts_stream.py`, `tts/neutts_worker.py`
+
+Kokoro stays the default; NeuTTS-Air is the slower engine that *clones* a voice from a 3–15 s clip. It
+needs `torch>=2.8`, which the main venv can't have (Parakeet/Kokoro are pinned to 2.6.0+cu124), so it runs
+in its own **`.venv-neutts`** as a subprocess and streams float32 chunks back over stdin/stdout with the
+exact same `synth` / `synth_stream` / `set_voice` interface — `agent/talk.py` swaps engines live and
+barge-in cancels across the process boundary within one chunk. Details, pins and the rebuild recipe:
+[`tts/README_NEUTTS.md`](tts/README_NEUTTS.md).
+
+| | Kokoro-82M | NeuTTS-Air Q8 (codec on GPU) |
+|---|---:|---:|
+| first audio of a sentence | ~180 ms | **223 ms** (median) |
+| real-time factor | 0.014–0.05 | **0.34** |
+| streaming: first text → first audio (`tts_test.py`) | 448 ms | 512 ms, 0 gaps |
+| barge-in: audio after `interrupt()` | 0 ms, stopped in 5.6 ms | 0 ms, stopped in 5.3 ms |
+| Parakeet transcribing it (round trip) | WER 0.027 | WER 0.027 (identical) |
+| in the agent: turn end → first audio | 0.95–1.10 s | 1.12–1.41 s |
+| load / VRAM | ~4 s / 0.55 GB | ~28 s / ~5 GB (loads once, stays resident) |
+| voices | fixed bank (af_heart, …) | any clip: dave, jo, paul, emily, greta, juliette, mateo, sophie, steven + `/clone` |
+
+```powershell
+.venv\Scripts\python.exe agent\talk.py --tts-engine neutts --neutts-voice paul   # start on NeuTTS
+/tts neutts   /tts kokoro   /voice paul   /clone my.wav|exact transcript          # live, in the agent
+.venv\Scripts\python.exe tts\tts_test.py --engine neutts --voice paul --neutts-seed 1
+```
+
+Three things that had to be true before it worked here, all now handled in code: the worker owns stdout
+(neutts `print()`s on every call), `llama-cpp-python` must be the **0.3.4** cu124 wheel (0.3.35 raises an
+illegal-instruction fault on this Ryzen), and `HF_HOME`/`HF_TOKEN` are read from the Windows registry
+(`tts/winenv.py`) so a stale terminal can't hide them.
+
 ## Data
 
 `audio/` = the five recordings Handy kept of the Yeti (16 kHz mono), `audio/handy_reference.json` =

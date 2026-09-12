@@ -18,7 +18,10 @@ picks up immediately, so generation stops within about one internal chunk (~0.5 
 """
 from __future__ import annotations
 
+import atexit
+import collections
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -26,6 +29,27 @@ import time
 from pathlib import Path
 
 import numpy as np
+
+
+def _kill_with_parent(proc: subprocess.Popen):
+    """Windows children outlive a parent that dies hard (crash, Task Manager, taskkill) — an orphaned
+    worker would sit on ~5 GB of VRAM until someone finds it. A Job Object with KILL_ON_JOB_CLOSE ties the
+    worker's life to this process: when our handle goes away for any reason, Windows kills the worker.
+    Returns the job handle (keep it alive) or None if pywin32 isn't available."""
+    if os.name != "nt":
+        return None
+    try:
+        import win32api
+        import win32job
+
+        job = win32job.CreateJobObject(None, "")
+        info = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+        info["BasicLimitInformation"]["LimitFlags"] |= win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, info)
+        win32job.AssignProcessToJobObject(job, win32api.OpenProcess(0x1F0FFF, False, proc.pid))
+        return job
+    except Exception:  # noqa: BLE001  (no pywin32, or already in a job that forbids nesting)
+        return None
 
 TTS_DIR = Path(__file__).resolve().parent
 VENV_PYTHON = TTS_DIR.parent / ".venv-neutts" / "Scripts" / "python.exe"
@@ -47,36 +71,69 @@ class NeuTTSEngine:
     Kokoro but not applied — NeuTTS has no built-in rate control."""
 
     def __init__(self, backbone: str = DEFAULT_BACKBONE, codec: str = DEFAULT_CODEC, device: str = "cuda",
-                voice: str = "dave", start_timeout: float = 240.0):
-        if not VENV_PYTHON.exists():
+                voice: str = "dave", start_timeout: float = 240.0, python: str | Path | None = None,
+                codec_device: str = "auto", seed: int | None = None):
+        # which venv runs the worker: explicit arg > $NEUTTS_PYTHON > .venv-neutts next to this repo
+        py = Path(python or os.environ.get("NEUTTS_PYTHON") or VENV_PYTHON)
+        if not py.exists():
             raise SystemExit(
-                f"NeuTTS venv not found at {VENV_PYTHON}.\n"
+                f"NeuTTS venv python not found at {py}.\n"
                 f"Set it up once: uv venv --python 3.11 {VENV_PYTHON.parent.parent}\n"
-                f"then install neutts there — see tts/README_NEUTTS.md."
+                f"then install neutts there — see tts/README_NEUTTS.md — or point --neutts-python / $NEUTTS_PYTHON "
+                f"at an existing venv that has neutts + llama-cpp-python (CUDA) installed."
             )
+        self.python = py
         self.device, self.backbone_repo, self.codec_repo = device, backbone, codec
         self._lock = threading.Lock()
         self._next_id = 0
         t0 = time.perf_counter()
-        self.proc = subprocess.Popen(
-            [str(VENV_PYTHON), str(TTS_DIR / "neutts_worker.py"), "--backbone", backbone, "--codec", codec,
-             "--device", device, "--voice", voice, "--samples-dir", str(SAMPLES_DIR)],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0,
-        )
+        cmd = [str(py), str(TTS_DIR / "neutts_worker.py"), "--backbone", backbone, "--codec", codec,
+               "--device", device, "--voice", voice, "--samples-dir", str(SAMPLES_DIR), "--codec-device", codec_device]
+        if seed is not None:
+            cmd += ["--seed", str(seed)]
+        # Own process group: in plain (non-TUI) mode a console Ctrl+C is delivered to every process on
+        # the console; without this the worker would get a KeyboardInterrupt mid-generation instead of
+        # the orderly cancel/quit we send it.
+        flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     bufsize=0, creationflags=flags)
+        self._closed = False
+        self._job = _kill_with_parent(self.proc)
+        atexit.register(self.close)
+        # Drain stderr continuously. The codec's weight-loading progress bar alone writes far more than
+        # a Windows pipe buffer (64 KB); with nobody reading, the worker blocks on its stderr write while
+        # we block on stdout.readline() -> a silent deadlock at "loading neutts…" (exactly the hang seen
+        # on /tts neutts). Keep only a tail for error messages.
+        self._stderr_tail: collections.deque[bytes] = collections.deque(maxlen=400)
+        threading.Thread(target=self._drain_stderr, daemon=True, name="neutts-stderr").start()
         ready = self._read_control_line(timeout=start_timeout)
         if ready is None or ready.get("event") != "ready":
             self._raise_startup_error(ready)
         self.load_s = ready["load_s"]
         self.warmup_s = ready["warmup_s"]
         self.voice = ready["voice"]
+        self.codec_device = ready.get("codec_device", codec_device)
+        self.worker_torch = ready.get("torch", "?")
+        self.seed = seed
 
     # ---------------------------------------------------------------- low-level protocol
+    def _drain_stderr(self) -> None:
+        try:
+            for line in iter(self.proc.stderr.readline, b""):
+                self._stderr_tail.append(line)
+        except Exception:  # noqa: BLE001  (pipe closed on exit)
+            pass
+
+    def _stderr_text(self) -> str:
+        time.sleep(0.2)  # let the drain thread catch the worker's last words
+        return b"".join(self._stderr_tail).decode("utf-8", errors="replace")
+
     def _raise_startup_error(self, msg: dict | None) -> None:
         try:
             self.proc.terminate()
         except Exception:  # noqa: BLE001
             pass
-        stderr = self.proc.stderr.read().decode("utf-8", errors="replace") if self.proc.stderr else ""
+        stderr = self._stderr_text()
         detail = (msg or {}).get("message", "no response from worker")
         gated_hint = ""
         if "GatedRepoError" in stderr or "GatedRepoError" in detail or "401" in stderr:
@@ -104,7 +161,7 @@ class NeuTTSEngine:
     def _read_event(self) -> dict:
         line = self.proc.stdout.readline()
         if not line:
-            stderr = self.proc.stderr.read().decode("utf-8", errors="replace") if self.proc.stderr else ""
+            stderr = self._stderr_text()
             raise NeuTTSWorkerError(f"NeuTTS worker exited unexpectedly.\n\nstderr tail:\n{stderr[-1500:]}")
         return json.loads(line.decode("utf-8"))
 
@@ -185,11 +242,37 @@ class NeuTTSEngine:
             return None
 
     def close(self) -> None:
+        """Orderly shutdown: stop any generation in flight, ask the worker to quit, give it 5 s to free
+        the backbone, then kill it. Idempotent; also registered with atexit so an agent that exits
+        without calling this still leaves no worker behind."""
+        if getattr(self, "_closed", True):
+            return
+        self._closed = True
         try:
+            self._send({"cmd": "cancel"})
             self._send({"cmd": "quit"})
-        except Exception:  # noqa: BLE001
+            self.proc.stdin.close()
+        except Exception:  # noqa: BLE001  (worker already gone)
             pass
         try:
             self.proc.wait(timeout=5)
         except Exception:  # noqa: BLE001
-            self.proc.kill()
+            try:
+                self.proc.kill()
+                self.proc.wait(timeout=2)
+            except Exception:  # noqa: BLE001
+                pass
+        try:
+            atexit.unregister(self.close)
+        except Exception:  # noqa: BLE001
+            pass
+
+    @property
+    def alive(self) -> bool:
+        return self.proc.poll() is None
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:  # noqa: BLE001
+            pass

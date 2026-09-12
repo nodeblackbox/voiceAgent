@@ -217,6 +217,34 @@
   </table></div>
   <p class="caption">First audio = 0.28 s for the first seven words to arrive + ~150 to 200 ms of Kokoro + one 21 ms block. A faster model stream or an earlier first-clause release shortens it.</p>
 
+  <h2>NeuTTS-Air: the cloning engine, next to Kokoro</h2>
+  <p>The second engine speaks as any 3 to 15 s reference clip. Its 748M-parameter backbone runs as a Q8 GGUF on llama.cpp's own CUDA build and its codec in torch; it needs <code>torch ≥ 2.8</code>, which the main venv cannot have, so it lives in <code>.venv-neutts</code> as a worker process and streams float32 chunks over stdin/stdout to a client with Kokoro's exact interface. Both engines stay resident; <code>/tts neutts</code> and <code>/tts kokoro</code> swap them live, and barge-in crosses the process boundary as a <code>cancel</code> read on a worker thread.</p>
+  <div class="tw"><table>
+    <tr><th>metric, 4 sentences, sequential</th><th class="num">codec on CUDA</th><th class="num">codec on CPU</th></tr>
+    <tr><td>first audio chunk of a sentence (median)</td><td class="num"><b>223 ms</b></td><td class="num">383 ms</td></tr>
+    <tr><td>real-time factor (median)</td><td class="num"><b>0.34</b></td><td class="num">0.64</td></tr>
+    <tr><td>per sentence: generation for 3.3 to 6.2 s of audio</td><td class="num">1.2 to 2.0 s, 7 to 13 chunks</td><td class="num">1.5 to 4.4 s</td></tr>
+    <tr><td>load / warm-up</td><td class="num">24 s / 1.0 s</td><td class="num">22 s / 1.0 s</td></tr>
+    <tr><td>barge-in: <code>cancel</code> round trip</td><td class="num">51 ms</td><td class="num"></td></tr>
+    <tr><td>voices</td><td colspan="2">dave, jo, paul, emily, greta, juliette, mateo, sophie, steven, and <code>/clone your.wav|transcript</code></td></tr>
+  </table></div>
+  <p class="caption">Kokoro on the same card: ~180 ms to a sentence's first audio, RTF 0.014 to 0.05. NeuTTS is roughly 25× the compute for the same audio, in exchange for cloning. Its first chunk still arrives before a Kokoro sentence would have finished rendering, so the sentence pipeline never starves. Five things had to be fixed before it ran at all — the weights were already in the shared cache, <code>llama-cpp-python</code> 0.3.35 faults with an illegal instruction on this CPU (0.3.4 runs), neutts prints on stdout on every call, torch ≥ 2.6 refuses the sample <code>.pt</code> caches, and an unread stderr pipe deadlocked the load — all recorded in <code>tts/README_NEUTTS.md</code>.</p>
+  <h3>Head to head, same paragraph, same pipeline</h3>
+  <div class="tw"><table>
+    <tr><th>metric</th><th class="num">Kokoro af_heart</th><th class="num">NeuTTS-Air paul</th></tr>
+    <tr><td>load / warm-up</td><td class="num">3.9 s / 1.9 s</td><td class="num">27.8 s / 1.6 s</td></tr>
+    <tr><td>VRAM</td><td class="num">0.55 GB</td><td class="num">~5 GB</td></tr>
+    <tr><td>offline per sentence, 33 to 105 characters</td><td class="num">153 to 197 ms, RTF 0.03 to 0.06</td><td class="num">0.99 to 2.1 s, RTF 0.35</td></tr>
+    <tr><td>streaming: first text → first audio, LLM at 25 words/s</td><td class="num">448 ms</td><td class="num"><b>512 ms</b></td></tr>
+    <tr><td>gaps over ~21 s of audio</td><td class="num">0</td><td class="num">0</td></tr>
+    <tr><td>barge-in: audio after <code>interrupt()</code> / stopped within</td><td class="num">0 ms / 5.6 ms</td><td class="num">0 ms / 5.3 ms</td></tr>
+    <tr><td>round trip: Parakeet transcribing it</td><td class="num">WER 0.027</td><td class="num"><b>WER 0.027</b>, identical</td></tr>
+    <tr><td>in the agent: turn end → first audio (Haiku)</td><td class="num">0.95 to 1.10 s</td><td class="num">1.12 to 1.41 s</td></tr>
+    <tr><td>in the agent: TTS first sentence</td><td class="num">176 to 207 ms</td><td class="num">236 to 506 ms</td></tr>
+    <tr><td><code>/tts</code> switch once both are loaded</td><td class="num">instant</td><td class="num">instant (first load ~30 s, then resident)</td></tr>
+  </table></div>
+  <p class="caption">From the user's chair, cloning costs about 60 ms more to first audio and 0.2 to 0.4 s more per turn; barge-in and intelligibility are unchanged. Measured 2026-09-10 with <code>tts/tts_test.py</code> and five spoken turns through <code>agent/talk.py</code> with live engine switches.</p>
+
   <h2>The thinking part: which model answers fastest</h2>
   <p>Every provider goes through LiteLLM, so swapping is a string. Three spoken-style probes per model, streaming; the column that matters is the first complete sentence, because that is when Kokoro can start.</p>
   <div class="tw"><table>

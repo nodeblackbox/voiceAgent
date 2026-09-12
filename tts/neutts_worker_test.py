@@ -54,10 +54,11 @@ class FakeModel:
             yield (np.full(2400, 0.01 * (i + 1), dtype=np.float32))
 
 _orig_init = _w.Worker.__init__
-def _patched_init(self, backbone, codec, device, voice, samples_dir, watermark):
+def _patched_init(self, backbone, codec, device, voice, samples_dir, watermark, codec_device="auto", seed=None, **kw):
     self.samples_dir = samples_dir
     self._ref_cache = {{}}
     self.model = FakeModel()
+    self.codec_device = "fake"
     self.load_s = 0.01
     self.voice = voice
     self.ref_codes, self.ref_text = self._load_reference(voice)

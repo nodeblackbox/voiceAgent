@@ -1,0 +1,119 @@
+{
+  "engine": "neutts",
+  "voice": "paul",
+  "speed": 1.0,
+  "load_s": 27.828463899903,
+  "warmup_s": 1.6063457997515798,
+  "vram_mib": 11723.0,
+  "wps": 25,
+  "play": false,
+  "offline": {
+    "rows": [
+      {
+        "i": 0,
+        "chars": 42,
+        "gen_ms": 1217.4,
+        "audio_s": 3.82,
+        "rtf": 0.319,
+        "text": "Okay, I looked at the limit order problem."
+      },
+      {
+        "i": 1,
+        "chars": 101,
+        "gen_ms": 1593.6,
+        "audio_s": 5.3,
+        "rtf": 0.301,
+        "text": "The order does get placed, but the chart never draws the line for it, so you can't see where it sits."
+      },
+      {
+        "i": 2,
+        "chars": 105,
+        "gen_ms": 1984.9,
+        "audio_s": 5.9,
+        "rtf": 0.336,
+        "text": "I think the fix is to draw the line the moment the order is accepted, and let you drag it to a new price."
+      },
+      {
+        "i": 3,
+        "chars": 33,
+        "gen_ms": 1032.0,
+        "audio_s": 2.9,
+        "rtf": 0.356,
+        "text": "That would take about 45 minutes."
+      },
+      {
+        "i": 4,
+        "chars": 58,
+        "gen_ms": 993.9,
+        "audio_s": 2.82,
+        "rtf": 0.352,
+        "text": "Do you want me to do that now, or after the barge-in test?"
+      }
+    ],
+    "vram_mib": 12144.0
+  },
+  "stream": {
+    "ttfa_ms": 511.9926994666457,
+    "t_last_text": 2.8704953994601965,
+    "t_done": 21.300608799792826,
+    "underruns": 0,
+    "sentences": [
+      {
+        "idx": 0,
+        "text": "Okay, I looked at the limit order problem.",
+        "chars": 42,
+        "t_ready": 0.2822514995932579,
+        "gen_s": 0.2187113994732499,
+        "audio_s": 3.82,
+        "rtf": 0.057254293055824586
+      },
+      {
+        "idx": 1,
+        "text": "The order does get placed, but the chart never draws the line for it, so you can't see where it sits.",
+        "chars": 101,
+        "t_ready": 1.6029362995177507,
+        "gen_s": 0.2235241001471877,
+        "audio_s": 5.3,
+        "rtf": 0.042174358518337306
+      },
+      {
+        "idx": 2,
+        "text": "I think the fix is to draw the line the moment the order is accepted, and let you drag it to a new price.",
+        "chars": 105,
+        "t_ready": 3.4553445000201464,
+        "gen_s": 0.214907000772655,
+        "audio_s": 5.9,
+        "rtf": 0.03642491538519576
+      },
+      {
+        "idx": 3,
+        "text": "That would take about 45 minutes.",
+        "chars": 33,
+        "t_ready": 5.471692499704659,
+        "gen_s": 0.22806010022759438,
+        "audio_s": 2.9,
+        "rtf": 0.07864141387158427
+      },
+      {
+        "idx": 4,
+        "text": "Do you want me to do that now, or after the barge-in test?",
+        "chars": 58,
+        "t_ready": 6.557293299585581,
+        "gen_s": 0.2319005001336336,
+        "audio_s": 2.82,
+        "rtf": 0.08223421990554385
+      }
+    ]
+  },
+  "bargein": {
+    "extra_audio_ms": 0.0,
+    "stop_ms": 5.27610071003437
+  },
+  "roundtrip": {
+    "wer": 0.0273972602739726,
+    "asr_ms": 800.0830002129078,
+    "audio_s": 20.74,
+    "hyp": "Okay, I looked at the limit order problem. The order does get placed, but the chart never draws the line for it, so you can't see where it sits. I think the fix is to draw the line the moment the order is accepted and let you drag it to a new price. That would take about 45 minutes. Do you want me to do that now or after the bargean test?",
+    "wav": "D:\\Downloads\\voiceAgent\\results\\tts_roundtrip.wav"
+  }
+}

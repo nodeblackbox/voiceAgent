@@ -9,13 +9,15 @@ from pathlib import Path
 
 import numpy as np
 
-# See the matching comment in agent/talk.py: HF_HOME is a persisted Windows User env var (D: has room,
-# C: doesn't) that a stale shell may not have inherited, silently causing a full model re-download.
-# Set it defensively for anyone importing this module directly (bench scripts, standalone tests).
-if os.name == "nt" and os.path.isdir(r"D:\hf-cache\huggingface"):
-    os.environ.setdefault("HF_HOME", r"D:\hf-cache\huggingface")
-
 ROOT = Path(__file__).resolve().parent.parent
+
+# HF_HOME (-> D:\hf-cache) and HF_TOKEN are Windows User env vars a stale shell may not have inherited,
+# which silently re-downloads models to C:. Pull them from the registry for anyone importing this
+# module directly (bench scripts, standalone tests). See tts/winenv.py.
+sys.path.insert(0, str(ROOT / "tts"))
+from winenv import DEFAULT_NAMES as _ENV_NAMES, load_user_env as _load_user_env  # noqa: E402
+
+_load_user_env(_ENV_NAMES)
 AUDIO_DIR = ROOT / "audio"
 RESULTS_DIR = ROOT / "results"
 RESULTS_DIR.mkdir(exist_ok=True)

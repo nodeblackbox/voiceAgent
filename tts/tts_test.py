@@ -27,7 +27,12 @@ from rich.table import Table
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tts"))
 sys.path.insert(0, str(ROOT / "bench"))
-from kokoro_stream import SR, KokoroTTS, NullSink, SentenceChunker, SpeakerSink, StreamingSpeech
+# before kokoro: huggingface_hub fixes its cache path (HF_HOME) at import time, and a stale shell may
+# not have it — without this, the round-trip's Parakeet load re-downloaded 2.4 GB to C:. See winenv.py.
+from winenv import DEFAULT_NAMES as _ENV_NAMES, load_user_env as _load_user_env  # noqa: E402
+
+_load_user_env(_ENV_NAMES)
+from kokoro_stream import SR, KokoroTTS, NullSink, SentenceChunker, SpeakerSink, StreamingSpeech  # noqa: E402
 
 con = Console()
 RESULTS = ROOT / "results"
@@ -170,14 +175,18 @@ def make_engine(args):
     sys.path.insert(0, str(ROOT / "tts"))
     from neutts_stream import NeuTTSEngine
 
-    return NeuTTSEngine(voice=args.voice, backbone=args.neutts_backbone)
+    return NeuTTSEngine(voice=args.voice, backbone=args.neutts_backbone, python=args.neutts_python,
+                        codec_device=args.neutts_codec_device, seed=args.neutts_seed)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--engine", choices=["kokoro", "neutts"], default="kokoro")
-    ap.add_argument("--voice", default=None, help="Kokoro voice (af_heart) or NeuTTS reference (dave, jo, ...)")
+    ap.add_argument("--voice", default=None, help="Kokoro voice (af_heart) or NeuTTS reference (dave, jo, paul, ...)")
     ap.add_argument("--neutts-backbone", default="neuphonic/neutts-air-q8-gguf")
+    ap.add_argument("--neutts-python", default=None, help="venv python for the NeuTTS worker (default .venv-neutts / $NEUTTS_PYTHON)")
+    ap.add_argument("--neutts-codec-device", default="auto", help="cuda | cpu | auto")
+    ap.add_argument("--neutts-seed", type=int, default=None, help="fixed sampling seed for repeatable runs")
     ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--wps", type=float, default=25, help="simulated LLM words per second")
     ap.add_argument("--play", action="store_true", help="actually play through the speakers")

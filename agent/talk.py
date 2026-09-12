@@ -21,17 +21,16 @@ unheard.
 from __future__ import annotations
 
 import os
+import sys as _sys
+from pathlib import Path as _Path
 
-# HF_HOME is persisted as a Windows *User* env var pointing at D:\hf-cache (C: doesn't have room for the
-# model caches — see README). User env vars only reach NEW processes started from a shell that itself
-# started after the var was set; a long-lived terminal tab predating that misses it silently, and the
-# fallback (~/.cache/huggingface on C:) re-downloads the ~2.4 GB Parakeet model every launch — which is
-# exactly what "loading Parakeet" hanging for a minute+ with no visible progress (stderr is redirected to
-# a log file in TUI mode) turned out to be. Setting it here removes the dependency on shell freshness
-# entirely; setdefault so an already-correct environment is left alone. Must run before any import
-# (kokoro, onnx_asr, ...) that touches huggingface_hub.
-if os.name == "nt" and os.path.isdir(r"D:\hf-cache\huggingface"):
-    os.environ.setdefault("HF_HOME", r"D:\hf-cache\huggingface")
+# Windows User env vars (HF_HOME -> D:\hf-cache, HF_TOKEN, API keys) don't reach a shell that started
+# before they were set; that silently re-downloaded the 2.4 GB Parakeet model every launch and hid the HF
+# token from the NeuTTS worker. Read them straight from the registry before any import that needs them.
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent / "tts"))
+from winenv import DEFAULT_NAMES as _ENV_NAMES, load_user_env as _load_user_env  # noqa: E402
+
+_load_user_env(_ENV_NAMES)
 
 import argparse
 import collections
@@ -161,6 +160,7 @@ class Talk:
         self.ui.set_status(f"loading {a.tts_engine}…")
         self.tts = self._load_tts_engine(a.tts_engine)
         self._tts_cache[a.tts_engine] = self.tts
+        self.ui.voice = self.tts.voice  # the header/reply labels follow the engine actually loaded, not --voice
         self.sink = NullSink(on_play=self.echo.push_played) if a.no_play else \
             SpeakerSink(device=resolve_output_device(a.out_device), on_play=self.echo.push_played)
         self.ui.set_status("connecting to model…")
@@ -187,7 +187,20 @@ class Talk:
         sys.path.insert(0, str(ROOT / "tts"))
         from neutts_stream import NeuTTSEngine
 
-        return NeuTTSEngine(voice=voice or a.neutts_voice, backbone=a.neutts_backbone)
+        return NeuTTSEngine(voice=voice or a.neutts_voice, backbone=a.neutts_backbone, python=a.neutts_python,
+                            codec_device=a.neutts_codec_device, seed=a.neutts_seed)
+
+    def close_tts(self) -> None:
+        """Shut down every engine loaded this session. Kokoro is in-process (nothing to do); the NeuTTS
+        worker is a separate process that must be told to quit — otherwise it outlives us on Windows,
+        holding ~5 GB of VRAM."""
+        for eng in list(self._tts_cache.values()):
+            if hasattr(eng, "close"):
+                try:
+                    eng.close()
+                except Exception:  # noqa: BLE001
+                    pass
+        self._tts_cache.clear()
 
     def _switch_tts(self, name: str) -> None:
         """Swap the live TTS engine. Each engine loads once and stays resident for the rest of the
@@ -555,7 +568,7 @@ class Talk:
             turn.speech_end_to_audio_ms = (self.turn_sink.first_audio_wall - turn.t_speech_end) * 1e3
         badges = {"asr": f"{turn.asr_ms:.0f}ms" if turn.asr_ms else "-",
                   "llm→sentence": f"{r.first_sentence_ms:.0f}ms" if r.first_sentence_ms else "-",
-                  "kokoro": f"{turn.tts_first_ms:.0f}ms" if turn.tts_first_ms else "-",
+                  self.tts_engine: f"{turn.tts_first_ms:.0f}ms" if turn.tts_first_ms else "-",
                   "end→audio": f"{turn.speech_end_to_audio_ms:.0f}ms" if turn.speech_end_to_audio_ms else "-"}
         self.ui.assistant_done(badges)
         self.turns.append(turn)
@@ -911,7 +924,7 @@ class Talk:
             return
         self.ui.note(f"session: {len(self.turns)} turns, {sum(t.interrupted for t in self.turns)} interrupted", "bold")
         for k, label in [("speech_end_to_audio_ms", "speech end → first audio"), ("llm_first_sentence_ms", "LLM first sentence"),
-                         ("asr_ms", "ASR"), ("tts_first_ms", "Kokoro first sentence")]:
+                         ("asr_ms", "ASR"), ("tts_first_ms", f"{self.tts_engine} first sentence")]:
             v = [getattr(t, k) for t in self.turns if getattr(t, k)]
             if v:
                 self.ui.note(f"{label:26} p50 {pct(v, 50):5.0f} ms   p95 {pct(v, 95):5.0f} ms")
@@ -933,6 +946,11 @@ def build_parser() -> argparse.ArgumentParser:
                      "a wav path (needs a matching .txt), or 'wav_path|transcript'")
     ap.add_argument("--neutts-backbone", default="neuphonic/neutts-air-q8-gguf",
                      help="neuphonic/neutts-air-q8-gguf (default) or -q4-gguf for less VRAM/more speed at lower quality")
+    ap.add_argument("--neutts-python", default=None,
+                     help="python.exe of the venv that runs the NeuTTS worker (default: .venv-neutts here, or $NEUTTS_PYTHON)")
+    ap.add_argument("--neutts-codec-device", default="auto", help="cuda | cpu | auto — where the NeuCodec (torch) runs")
+    ap.add_argument("--neutts-seed", type=int, default=None,
+                     help="fix NeuTTS's sampling seed so repeated runs of the same text are comparable (default: random per call)")
     ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--max-tokens", type=int, default=300)
     ap.add_argument("--first-min-words", type=int, default=6)
@@ -1017,6 +1035,7 @@ def main():
                 t.sink.close()
             except Exception:  # noqa: BLE001
                 pass
+            t.close_tts()
             t.summary()
         return
 
@@ -1047,6 +1066,7 @@ def main():
                 t.sink.close()
             except Exception:  # noqa: BLE001
                 pass
+            t.close_tts()
             t.summary()
 
 
