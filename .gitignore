@@ -2,11 +2,20 @@
 *.pyc
 .env
 .env.*
+!.env.example
 .venv/
+.venv-neutts/
 .venv-searxng/
+
+# Personal audio recordings
+audio/*.wav
+
+# Runtime data
 results/*.jsonl
 results/*.wav
 results/notes.json
 results/searxng.log
-search/searxng-src/
 results/memory.sqlite*
+
+# SearXNG source (large, fetched at setup time)
+search/searxng-src/

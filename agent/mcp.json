@@ -11,9 +11,9 @@
     "filesystem": {
       "transport": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:\\Downloads\\voiceAgent"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
       "enabled": false,
-      "description": "official filesystem server scoped to this project (needs Node; first run downloads it)"
+      "description": "official filesystem server scoped to the project root (needs Node; first run downloads it)"
     },
     "fetch": {
       "transport": "stdio",
