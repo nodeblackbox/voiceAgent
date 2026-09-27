@@ -2,6 +2,8 @@
 
 A fully local, real-time voice assistant for Windows — sub-second speech-to-speech latency, barge-in interruption, web search, tool use via MCP, and voice cloning. Built from the ground up with [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (ASR), [Silero VAD](https://github.com/snakers4/silero-vad), [Kokoro-82M](https://github.com/hexgrad/kokoro) (TTS), and [LangGraph](https://github.com/langchain-ai/langgraph).
 
+![voiceAgent TUI screenshot](docs/screenshot.png)
+
 ---
 
 ## Features
