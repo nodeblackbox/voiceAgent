@@ -101,7 +101,7 @@ Models auto-download from Hugging Face on first run (~4–5 GB total into `~/.ca
 ## Running the agent
 
 ```powershell
-# Default: Claude Opus 5, Kokoro af_heart voice, first available mic
+# Default: Claude Haiku 4.5, Kokoro af_heart voice, first available mic
 .venv\Scripts\python.exe agent\talk.py
 
 # Faster first sentence (Groq inference)
