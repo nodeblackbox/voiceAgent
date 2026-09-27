@@ -50,7 +50,7 @@ Full component map: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 ### 1. Clone and create the virtual environment
 
 ```powershell
-git clone https://github.com/your-username/voiceAgent
+git clone https://github.com/nodeblackbox/voiceAgent.git
 cd voiceAgent
 uv venv --python 3.11 .venv
 ```
