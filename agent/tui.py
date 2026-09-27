@@ -20,6 +20,7 @@ import time
 from collections import deque
 
 from rich.text import Text
+from banner import startup_banner
 from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -57,6 +58,7 @@ Screen { layout: vertical; background: $background; }
 .err { color: #f87171; margin: 0 0 0 2; }
 .cut { border-left: thick #ef4444; color: #fecaca; margin: 0 0 1 2; }
 .paste { border-left: thick #a78bfa; color: #ddd6fe; }
+.banner { content-align: center top; margin: 0 0 1 0; }
 .partial { color: #7dd3fc; text-style: italic; }
 #meter { height: 1; padding: 0 1; color: #94a3b8; }
 #input { height: auto; min-height: 3; max-height: 12; border: tall #7c3aed; background: $surface; }
@@ -159,6 +161,7 @@ class AgentApp(App):
 
     def on_mount(self) -> None:
         self.query_one("#input", PromptArea).focus()
+        self.add_block(startup_banner(self.size.width or 95), "banner")
         self.set_interval(1 / 15, self._tick)
         self.render_status()
         threading.Thread(target=self._runner, daemon=True, name="agent").start()
@@ -343,8 +346,20 @@ class TextualUI:
         self._call(go)
 
     def tool(self, name: str, result: str | None = None):
-        txt = f"⚙ {name}(...)" if result is None else f"⚙ {name} → {result[:110]}"
-        self._call(self.app.add_block if self.app else (lambda *a: None), txt, "tool")
+        add = self.app.add_block if self.app else (lambda *a: None)
+        if result is None:
+            self._call(add, f"⚙ {name}(...)", "tool")
+            return
+        from tools_web import sources_for  # lazy: skip httpx/trafilatura import when search is off
+
+        urls = sources_for(name, result)
+        if not urls:
+            self._call(add, f"⚙ {name} → {result[:110]}", "tool")
+            return
+        t = Text(f"⚙ {name} · {len(urls)} source{'s' if len(urls) != 1 else ''}")
+        for u in urls:
+            t.append(f"\n  ↳ {u}", style="dim underline")
+        self._call(add, t, "tool")
 
     def interrupted(self, spoken: str, unspoken: str):
         def go():

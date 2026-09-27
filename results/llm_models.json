@@ -484,6 +484,14 @@
         "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
       },
       {
+        "id": "gemini-3.8-flash",
+        "display": "Gemini 3.8 Flash",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens,createCachedContent,batchGenerateContent"
+      },
+      {
         "id": "gemini-embedding-001",
         "display": "Gemini Embedding 001",
         "context": 2048,
@@ -594,6 +602,22 @@
         "max_output": 65536,
         "chat": true,
         "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "lyria-3.5",
+        "display": "Lyria 3.5",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": true,
+        "methods": "generateContent,countTokens"
+      },
+      {
+        "id": "lyria-realtime-exp",
+        "display": "Lyria Realtime Experimental",
+        "context": 1048576,
+        "max_output": 65536,
+        "chat": false,
+        "methods": "bidiGenerateMusic"
       },
       {
         "id": "nano-banana-pro-preview",

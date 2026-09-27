@@ -23,7 +23,10 @@ from typing import Iterator
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
+# override=True: a stale key already sitting in the process env (an old `setx`, a leftover shell export,
+# an IDE that injected one) must not silently outlive an edit to .env — same class of bug winenv.py's
+# docstring describes for HF_HOME/HF_TOKEN, just via python-dotenv's default instead of the registry.
+load_dotenv(ROOT / ".env", override=True)
 
 import litellm  # noqa: E402  (after dotenv so provider env vars are visible)
 

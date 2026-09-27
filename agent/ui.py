@@ -123,7 +123,15 @@ class TerminalUI:
             if result is None:
                 t.append(f"     ⚙ {name}(...)", style="yellow")
             else:
-                t.append(f"     ⚙ {name} → {result[:90]}", style="yellow dim")
+                from tools_web import sources_for  # lazy: skip httpx/trafilatura import when search is off
+
+                urls = sources_for(name, result)
+                if urls:
+                    t.append(f"     ⚙ {name} · {len(urls)} source{'s' if len(urls) != 1 else ''}", style="yellow")
+                    for u in urls:
+                        t.append(f"\n       ↳ {u}", style="yellow dim underline")
+                else:
+                    t.append(f"     ⚙ {name} → {result[:90]}", style="yellow dim")
             self.entries.append(t)
         self._line(t)
         self.refresh()

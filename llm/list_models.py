@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)  # .env wins over any stale key already in the process env
 con = Console()
 
 

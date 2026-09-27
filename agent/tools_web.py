@@ -178,3 +178,29 @@ def research(question: str, pages: int = 3) -> str:
 
 
 WEB_TOOLS = [web_search, read_page, research]
+
+# Tools whose result text is worth mining for source URLs, so the UI can show what it actually looked
+# at instead of a truncated blob of prose (see ui.py / tui.py `tool()`).
+SOURCE_TOOLS = {"web_search", "read_page", "research"}
+_URL_RE = re.compile(r"https?://[^\s)\]]+")
+
+
+def extract_sources(text: str, limit: int = 8) -> list[str]:
+    """Pull the distinct URLs out of a web_search/research/read_page result, in the order they first
+    appear, so the UI can list "sources" without re-parsing the whole tool-call plumbing."""
+    seen: list[str] = []
+    for m in _URL_RE.finditer(text or ""):
+        u = m.group(0).rstrip(".,;:")
+        if u not in seen:
+            seen.append(u)
+        if len(seen) >= limit:
+            break
+    return seen
+
+
+def sources_for(tool_name: str, result: str) -> list[str]:
+    """What ui.py / tui.py call: the source URLs for a finished tool call, or [] if `tool_name` isn't
+    one that reads the web (so callers fall back to their normal truncated-result display)."""
+    if tool_name not in SOURCE_TOOLS:
+        return []
+    return extract_sources(result)

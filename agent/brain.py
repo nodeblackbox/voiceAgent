@@ -37,6 +37,10 @@ from langchain_core.tools import tool  # noqa: E402
 NOTES = ROOT / "results" / "notes.json"
 MCP_CONFIG = ROOT / "agent" / "mcp.json"
 
+# Names from tools_web.SOURCE_TOOLS, duplicated rather than imported so a non-search run never pays for
+# tools_web's httpx/trafilatura import — see _stream_once's on_tool_result cap below.
+_WEB_SOURCE_TOOLS = {"web_search", "read_page", "research"}
+
 
 # --------------------------------------------------------------------------- built-in tools
 @tool
@@ -381,7 +385,10 @@ class Brain:
                 elif isinstance(chunk, ToolMessage):
                     tools_in_flight = max(0, tools_in_flight - 1)
                     if on_tool_result:
-                        on_tool_result(chunk.name, _content_text(chunk.content)[:200])
+                        # web tools get more room so their source URLs survive the cap (ui.py / tui.py
+                        # pull those out to show what was actually searched/read); other tools stay tight.
+                        cap = 2000 if chunk.name in _WEB_SOURCE_TOOLS else 200
+                        on_tool_result(chunk.name, _content_text(chunk.content)[:cap])
             elif mode == "updates":
                 for _node, out in (data or {}).items():
                     if isinstance(out, dict):

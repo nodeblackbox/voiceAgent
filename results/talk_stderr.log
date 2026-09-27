@@ -151,3 +151,103 @@ Traceback (most recent call last):
   File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 1819, in call_from_thread
     raise RuntimeError("App is not running")
 RuntimeError: App is not running
+Traceback (most recent call last):
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 1077, in <module>
+    main()
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 1039, in main
+    t.close_tts()
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 201, in close_tts
+    eng.close()
+  File "D:\Downloads\voiceAgent\tts\neutts_stream.py", line 258, in close
+    self.proc.wait(timeout=5)
+  File "C:\Python311\Lib\subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\subprocess.py", line 1588, in _wait
+    result = _winapi.WaitForSingleObject(self._handle,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+Exception in thread Thread-9 (_gen_loop):
+Traceback (most recent call last):
+  File "C:\Python311\Lib\threading.py", line 1038, in _bootstrap_inner
+    self.run()
+  File "C:\Python311\Lib\threading.py", line 975, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\Downloads\voiceAgent\tts\kokoro_stream.py", line 380, in _gen_loop
+    for chunk in self.tts.synth_stream(s, self.speed):
+  File "D:\Downloads\voiceAgent\tts\neutts_stream.py", line 200, in synth_stream
+    self._send({"cmd": "synth_stream", "text": text, "id": cid})
+  File "D:\Downloads\voiceAgent\tts\neutts_stream.py", line 147, in _send
+    self.proc.stdin.write((json.dumps(obj) + "\n").encode("utf-8"))
+ValueError: I/O operation on closed file
+Traceback (most recent call last):
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 1077, in <module>
+    main()
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 1039, in main
+    t.close_tts()
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 201, in close_tts
+    eng.close()
+  File "D:\Downloads\voiceAgent\tts\neutts_stream.py", line 258, in close
+    self.proc.wait(timeout=5)
+  File "C:\Python311\Lib\subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\subprocess.py", line 1588, in _wait
+    result = _winapi.WaitForSingleObject(self._handle,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "C:\Python311\Lib\asyncio\runners.py", line 73, in close
+    loop.run_until_complete(loop.shutdown_default_executor())
+  File "C:\Python311\Lib\asyncio\base_events.py", line 640, in run_until_complete
+    self.run_forever()
+  File "C:\Python311\Lib\asyncio\windows_events.py", line 321, in run_forever
+    super().run_forever()
+  File "C:\Python311\Lib\asyncio\base_events.py", line 607, in run_forever
+    self._run_once()
+  File "C:\Python311\Lib\asyncio\base_events.py", line 1884, in _run_once
+    event_list = self._selector.select(timeout)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\windows_events.py", line 444, in select
+    self._poll(timeout)
+  File "C:\Python311\Lib\asyncio\windows_events.py", line 817, in _poll
+    status = _overlapped.GetQueuedCompletionStatus(self._iocp, ms)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 1077, in <module>
+    main()
+  File "D:\Downloads\voiceAgent\agent\talk.py", line 1032, in main
+    run_app(ui, start, t.submit_text, mic_fn=t.toggle_mic)
+  File "D:\Downloads\voiceAgent\agent\tui.py", line 391, in run_app
+    app.run()
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\textual\app.py", line 2350, in run
+    return asyncio.run(run_app())
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python311\Lib\asyncio\runners.py", line 189, in run
+    with Runner(debug=debug) as runner:
+  File "C:\Python311\Lib\asyncio\runners.py", line 63, in __exit__
+    self.close()
+  File "C:\Python311\Lib\asyncio\runners.py", line 77, in close
+    loop.close()
+  File "C:\Python311\Lib\asyncio\proactor_events.py", line 697, in close
+    self._proactor.close()
+  File "C:\Python311\Lib\asyncio\windows_events.py", line 907, in close
+    self._poll(msg_update)
+  File "C:\Python311\Lib\asyncio\windows_events.py", line 817, in _poll
+    status = _overlapped.GetQueuedCompletionStatus(self._iocp, ms)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+Exception ignored in atexit callback: <bound method finalize._exitfunc of <class 'weakref.finalize'>>
+Traceback (most recent call last):
+  File "C:\Python311\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Python311\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Downloads\voiceAgent\.venv\Lib\site-packages\urllib3\connectionpool.py", line 1186, in _close_pool_connections
+    while True:
+KeyboardInterrupt: 

@@ -66,6 +66,7 @@ from kokoro_stream import SR as TTS_SR, KokoroTTS, NullSink, SentenceChunker, Sp
 from prompts import voice_system_prompt  # noqa: E402
 from state import S, StateMachine, Turn  # noqa: E402
 from ui import TerminalUI  # noqa: E402
+from banner import startup_banner  # noqa: E402
 
 SR = 16000
 CHUNK = 512
@@ -1040,6 +1041,8 @@ def main():
         return
 
     t = Talk(a)
+    if not a.plain:
+        t.ui.console.print(startup_banner(t.ui.console.width))
     with t.ui:
         try:
             t.load()
