@@ -6,6 +6,8 @@
 
 Parakeet listens · Claude Haiku thinks · Kokoro speaks · SQLite remembers
 
+A fully local, real-time voice assistant for Windows — sub-second speech-to-speech latency, barge-in interruption, web search, tool use via MCP, and voice cloning. Built from the ground up with [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (ASR), [Silero VAD](https://github.com/snakers4/silero-vad), [Kokoro-82M](https://github.com/hexgrad/kokoro) (TTS), and [LangGraph](https://github.com/langchain-ai/langgraph).
+
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![CUDA](https://img.shields.io/badge/CUDA-12-green?logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
