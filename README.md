@@ -1,8 +1,19 @@
+<div align="center">
+
 # voiceAgent
 
-A local, real-time voice agent you can talk over — Parakeet listens, Claude Haiku thinks, Kokoro speaks, and it remembers across sessions. Sub-second speech-to-speech, real barge-in, web search, and MCP tools, all running on your own machine.
+**A local, real-time voice agent you can talk over.**
+
+Parakeet listens · Claude Haiku thinks · Kokoro speaks · SQLite remembers
+
+[![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
+[![CUDA](https://img.shields.io/badge/CUDA-12-green?logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ![voiceAgent demo](docs/demo.gif)
+
+</div>
 
 ---
 
