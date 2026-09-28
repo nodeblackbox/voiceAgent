@@ -1,8 +1,36 @@
 # voiceAgent
 
-A fully local, real-time voice assistant for Windows — sub-second speech-to-speech latency, barge-in interruption, web search, tool use via MCP, and voice cloning. Built from the ground up with [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (ASR), [Silero VAD](https://github.com/snakers4/silero-vad), [Kokoro-82M](https://github.com/hexgrad/kokoro) (TTS), and [LangGraph](https://github.com/langchain-ai/langgraph).
+A local, real-time voice agent you can talk over — Parakeet listens, Claude Haiku thinks, Kokoro speaks, and it remembers across sessions. Sub-second speech-to-speech, real barge-in, web search, and MCP tools, all running on your own machine.
 
-![voiceAgent TUI screenshot](docs/screenshot.png)
+![voiceAgent demo](docs/demo.gif)
+
+---
+
+## Latency (RTX 4090, CUDA 12, Windows 11)
+
+| Stage | Latency |
+|---|---|
+| Parakeet one-pass, 4.4 s clip (hybrid) | 45 ms best / 79 ms median |
+| Parakeet one-pass, 64 s monologue (hybrid) | 147 ms best / 169 ms median (RTFx 437) |
+| Silero VAD per 32 ms chunk (CPU) | 0.6 ms p50 / 0.7 ms p95 |
+| Kokoro first audio from token stream | ~450 ms |
+| Groq gpt-oss-20b: first speakable sentence | 270–330 ms |
+| Anthropic claude-haiku-4-5: turn end → first audio | 1.7–1.9 s |
+| Groq gpt-oss-20b: turn end → first audio | ~1.1 s |
+
+Full benchmark write-up: [`results/REPORT.md`](results/REPORT.md)
+
+---
+
+## Architecture
+
+```
+mic ─ Silero VAD ─┬─ EchoGate ─ StateMachine ─ barge-in
+                  ├─ live partials (Parakeet re-decodes every 0.6 s for the UI)
+                  └─ utterance ─ Parakeet ─ Brain (LangGraph + tools, streaming) ─ Kokoro ─ speaker
+```
+
+Full component map: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 
 ---
 
@@ -18,18 +46,6 @@ A fully local, real-time voice assistant for Windows — sub-second speech-to-sp
 - **SQLite memory** — full-text search over conversation history; the agent remembers across sessions
 - **Textual TUI** — scrollable conversation, multi-line editor, paste presets, mic mute, F2 wake word
 - **Groq key pool** — rotate up to N keys on rate limits so the conversation never stalls
-
----
-
-## Architecture
-
-```
-mic ─ Silero VAD ─┬─ EchoGate ─ StateMachine ─ barge-in
-                  ├─ live partials (Parakeet re-decodes every 0.6 s for the UI)
-                  └─ utterance ─ Parakeet ─ Brain (LangGraph + tools, streaming) ─ Kokoro ─ speaker
-```
-
-Full component map: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 
 ---
 
@@ -186,22 +202,6 @@ The agent auto-starts SearXNG when `/search on` is used. Tools: `web_search`, `r
 ```
 
 Attach/detach at runtime with `/mcp on my-server` / `/mcp off my-server`.
-
----
-
-## Benchmark numbers (RTX 4090, CUDA 12, Windows 11)
-
-| Stage | Latency |
-|---|---|
-| Parakeet one-pass, 4.4 s clip (hybrid) | 45 ms best / 79 ms median |
-| Parakeet one-pass, 64 s monologue (hybrid) | 147 ms best / 169 ms median (RTFx 437) |
-| Silero VAD per 32 ms chunk (CPU) | 0.6 ms p50 / 0.7 ms p95 |
-| Kokoro first audio from token stream | ~450 ms |
-| Groq gpt-oss-20b: first speakable sentence | 270–330 ms |
-| Anthropic claude-haiku-4-5: turn end → first audio | 1.7–1.9 s |
-| Groq gpt-oss-20b: turn end → first audio | ~1.1 s |
-
-Full benchmark write-up: [`results/REPORT.md`](results/REPORT.md)
 
 ---
 
